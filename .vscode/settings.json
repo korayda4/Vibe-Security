@@ -1,0 +1,15 @@
+{
+  "mcp.servers": {
+    "vibe-security": {
+      "command": "npx",
+      "args": ["-y", "vibe-security"],
+      "type": "stdio"
+    }
+  },
+  "chat.instructions": [
+    {
+      "pattern": "/securityCheck",
+      "instructionsFile": ".github/instructions/security-check.instructions.md"
+    }
+  ]
+}
