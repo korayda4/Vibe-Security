@@ -1,7 +1,7 @@
 {
-  "name": "vibe-security",
+  "name": "@korayda4/vibe-security",
   "version": "0.3.0",
-  "description": "Security guard MCP server for AI Vibe Coders — scans projects across 8 languages and 6 layers, writes Security.md, ships auto-fix patches. Claude Code and VS Code Anthropic Claude extension compatible.",
+  "description": "Security guard MCP server for Vibe Coded projects — scans Frontend and Backend across every layer and language, plans + tests + fixes vulnerabilities. Claude Code and VS Code Anthropic Claude extension compatible.",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -49,6 +49,8 @@
     "ruby",
     "php",
     "kotlin",
+    "cpp",
+    "csharp",
     "xss",
     "sql-injection",
     "owasp",

@@ -16,7 +16,7 @@ jobs:
           node-version: 22
 
       - name: Install Vibe Security
-        run: npm install -g vibe-security
+        run: npm install -g @korayda4/vibe-security
 
       - name: First run - establish baseline (only on main push)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

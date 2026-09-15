@@ -6,23 +6,25 @@ All notable changes to Vibe Security are documented here. Format follows [Keep a
 
 ### Added
 
-- **Framework detection** — auto-detects React, Next.js, Vue.js, Angular, Svelte, Express, Fastify, NestJS, Django, Flask, FastAPI, Rails, Sinatra, Laravel, Symfony, WordPress, Spring, ASP.NET Core, Blazor, Actix, Axum, Gin, Fiber, CMake. Reads `package.json`, `composer.json`, `Gemfile`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `*.sln`, `CMakeLists.txt`.
-- **C / C++ support** — added `.c`, `.cpp`, `.h`, `.hpp`, `CMakeLists.txt` detection.
-- **.NET / C# support** — added `.cs`, `.csproj`, `.sln` detection.
-- **Smart language detection v2** — shebang (`#!/usr/bin/env python3`), syntax sniffing (def, fn, fun, package main, etc.) for files without extension.
-- **Project profile output** — primary language, all detected languages, file counts, applicable rules, and now detected frameworks.
+- **Framework auto-detection** — React, Next.js, Vue.js, Angular, Svelte, Express, Fastify, NestJS, Django, Flask, FastAPI, Rails, Sinatra, Laravel, Symfony, WordPress, Spring, ASP.NET Core, Blazor, Actix, Axum, Gin, Fiber, CMake. Reads `package.json`, `composer.json`, `Gemfile`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `*.sln`, `CMakeLists.txt`.
+- **C / C++ / C# / .NET support** — added `.c`, `.cpp`, `.h`, `.hpp`, `.cs`, `.csproj`, `.sln`, `CMakeLists.txt` detection.
+- **Smart language detection v2** — shebang (`#!/usr/bin/env python3`) + syntax sniffing (def, fn, fun, package main) for files without extension.
+- **Project profile output** — primary language, detected languages, file counts, applicable rules, and detected frameworks.
+- **Published on npm** as `@korayda4/vibe-security` (scoped, public).
 
 ### Changed
 
-- **README simplified** — 14.7 KB → 7.5 KB. Action-focused. Now lists 8 languages and ~25 frameworks explicitly.
-- **All docs translated to English** — CONTRIBUTING.md, ROADMAP.md, USAGE.md, TOKEN_SAFETY.md, VULNERABILITY_PRIORITY.md are now concise English.
+- **README rewritten** — 6.3 KB. Action-focused. Frontend and Backend technologies explicitly listed with the Vibe Coding security philosophy: "Plan → Test → Find → Explain → Fix".
+- **All docs translated to English and simplified** — CONTRIBUTING.md, ROADMAP.md, USAGE.md, TOKEN_SAFETY.md, VULNERABILITY_PRIORITY.md.
+- **Package renamed to scoped** — `@korayda4/vibe-security` (the unscoped name was taken).
 - **Contact email** — `koraydemirmc@gmail.com` (real address) in package.json and SECURITY.md.
-- **TypeScript types** — Language union extended with `kotlin`, `rust`, `ruby`, `php`; Framework type added.
+- **Author block** in package.json with name, email, GitHub URL.
+- **`prepublishOnly` hook** runs lint + test before publish.
 
 ### Total
 
 - **36 rules** (was 26 in 0.1.0)
-- **8 code languages + C/C++/.NET** support
+- **10 languages** (JS/TS, Python, Java, Kotlin, Go, Rust, Ruby, PHP, C/C++, C#/.NET)
 - **~25 frameworks** auto-detected
 - **19 tests** (was 16 in 0.1.0), all passing
 - **0 npm audit vulnerabilities**

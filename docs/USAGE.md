@@ -2,33 +2,32 @@
 
 ## Install
 
-### From GitHub
-
-```json
-{
-  "mcpServers": {
-    "vibe-security": { "command": "npx", "args": ["-y", "github:korayda4/Vibe-Security"] }
-  }
-}
-```
-
 ### From npm
 
+```bash
+npm install -g @korayda4/vibe-security
+```
+
+### From GitHub
+
+```bash
+npx -y github:korayda4/Vibe-Security init
+```
+
+### MCP server config
+
 ```json
 {
   "mcpServers": {
-    "vibe-security": { "command": "npx", "args": ["-y", "vibe-security"] }
+    "vibe-security": { "command": "vibe-security" }
   }
 }
 ```
 
-### Bootstrap a project
+For Claude Code: `~/.claude/mcp_servers.json`
+For VS Code Anthropic Claude extension: `.vscode/settings.json`
 
-```bash
-npx -y vibe-security init
-```
-
-Drops `.vibe-security.json`, slash command, and Copilot instructions.
+After install, restart your editor. The `/securityCheck` slash command will be available.
 
 ## Slash command
 
@@ -76,7 +75,7 @@ Subcommands: `scan`, `list`, `init`, `baseline update`.
 ### GitHub Actions (SARIF + baseline)
 
 ```yaml
-- run: npx -y vibe-security scan . --format sarif --output vibe-security.sarif
+- run: npx -y @korayda4/vibe-security scan . --format sarif --output vibe-security.sarif
 - uses: github/codeql-action/upload-sarif@v3
   with: { sarif_file: vibe-security.sarif }
 ```
@@ -104,7 +103,7 @@ vibe-security scan . --baseline .vibe-security-baseline.json
 
 ## Suppress a finding
 
-Use the `.vibe-security.json` config to disable rules project-wide:
+Use `.vibe-security.json` to disable rules project-wide:
 
 ```json
 { "rules": { "FE-006": { "enabled": false } } }
