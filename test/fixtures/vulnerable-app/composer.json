@@ -1,0 +1,7 @@
+{
+  "name": "vulnerable-app/php",
+  "require": {
+    "php": "^8.2",
+    "laravel/framework": "^10.0"
+  }
+}

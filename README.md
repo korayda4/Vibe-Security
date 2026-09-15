@@ -3,19 +3,19 @@
 > **Security guard for AI Vibe Coders.** Type `/securityCheck` in Claude Code or VS Code — the AI scans your project, writes `Security.md`, and ships auto-fix patches for the most common mistakes.
 
 [![MCP](https://img.shields.io/badge/MCP-stdio-blue?style=flat-square)](https://modelcontextprotocol.io)
+[![npm](https://img.shields.io/npm/v/vibe-security?style=flat-square)](https://www.npmjs.com/package/vibe-security)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square)](https://nodejs.org)
-[![Languages](https://img.shields.io/badge/languages-8-orange?style=flat-square)](#supported-languages)
 
 ---
 
 ## Install (one command)
 
 ```bash
-npx -y github:korayda4/Vibe-Security init
+npx -y vibe-security init
 ```
 
-This drops the slash command, MCP config, and Copilot instructions into your project. Then restart Claude Code / VS Code.
+This drops the slash command, MCP config, and Copilot instructions into your project. Restart Claude Code / VS Code.
 
 That's it. Now `/securityCheck` works.
 
@@ -39,26 +39,45 @@ Or just ask Claude:
 
 ---
 
-## Supported Languages
+## Supported Languages & Frameworks
 
-Vibe Security auto-detects language by file extension **and** content (shebang, syntax). The model gets a project profile so it knows what context to focus on.
+Vibe Security auto-detects language (file extension + shebang + syntax sniff) and detects frameworks from package manifests.
 
-| Language | Detection | Notes |
+### Languages (8)
+
+| Language | Detection | Extensions |
 |---|---|---|
-| **JavaScript / TypeScript** | `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.mts`, `.cts`, `.tsx` | React, Next.js, Express, NestJS, Vite, Webpack, Node |
-| **Python** | `.py`, `.pyi` + shebang | Flask, Django, FastAPI, SQLAlchemy |
-| **Java** | `.java` | Spring, JDBC, JJWT |
-| **Kotlin** | `.kt`, `.kts` | Spring Boot, Android backend |
-| **Go** | `.go` | Gin, net/http, jwt-go |
-| **Rust** | `.rs` | Actix, Axum, Rocket, sqlx |
-| **Ruby** | `.rb` | Rails, Sinatra |
-| **PHP** | `.php` | Laravel, Symfony, WordPress |
+| **JavaScript / TypeScript** | `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.mts`, `.cts`, `.tsx` | All Node + browser |
+| **Python** | `.py`, `.pyi`, `#!/usr/bin/env python3` | Python 3.x |
+| **Java** | `.java` | Java 8+ |
+| **Kotlin** | `.kt`, `.kts` | Kotlin / Android |
+| **Go** | `.go` | Go 1.18+ |
+| **Rust** | `.rs` | Rust 2018+ |
+| **Ruby** | `.rb`, `Gemfile`, `#!/usr/bin/env ruby` | Ruby 3.x |
+| **PHP** | `.php` | PHP 8+ |
+| **C / C++** | `.c`, `.cpp`, `.h`, `.hpp`, `CMakeLists.txt` | C11+ / C++17+ |
+| **C# / .NET** | `.cs`, `.csproj`, `.sln` | .NET 6+ |
 
-If a file has no extension or it's a brand-new language, the content sniffer falls back to syntax heuristics.
+### Frameworks (auto-detected)
+
+**Frontend:** React · Next.js · Vue.js · Angular · Svelte
+**Backend (JS/TS):** Express · Fastify · NestJS
+**Backend (Python):** Django · Flask · FastAPI
+**Backend (Ruby):** Rails · Sinatra
+**Backend (PHP):** Laravel · Symfony · WordPress
+**Backend (Java):** Spring
+**Backend (.NET):** ASP.NET Core · Blazor
+**Backend (Rust):** Actix · Axum
+**Backend (Go):** Gin · Fiber
+**Build:** CMake
+
+Detection sources: `package.json`, `composer.json`, `Gemfile`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.csproj`, `*.sln`, `CMakeLists.txt`.
+
+The MCP server reports detected frameworks so the model knows what context to focus on.
 
 ---
 
-## What it finds (26 rules × 6 layers)
+## What it finds (36 rules × 6 layers)
 
 | Layer | Examples |
 |---|---|
@@ -69,7 +88,7 @@ If a file has no extension or it's a brand-new language, the content sniffer fal
 | **CI/CD** | Dependencies, hardcoded secrets, Dockerfile |
 | **Observability** | PII in logs, stack trace in response, missing handlers |
 
-Every finding cites **CWE** + **OWASP** + concrete remediation. Three rules ship **auto-fix** patches (FE-001 DOMPurify, FE-004 source maps, NET-002 CORS origin).
+Every finding cites **CWE** + **OWASP** + concrete remediation. Three rules ship **auto-fix** patches.
 
 Full rule catalog: [`docs/VULNERABILITY_PRIORITY.md`](docs/VULNERABILITY_PRIORITY.md).
 
@@ -98,7 +117,7 @@ XSS (CWE-79) · SQL/NoSQL injection (CWE-89) · BOLA/IDOR (CWE-639) · CSRF (CWE
 ## CI/CD
 
 ```yaml
-- run: npx -y github:korayda4/Vibe-Security scan . --format sarif --output vibe-security.sarif
+- run: npx -y vibe-security scan . --format sarif --output vibe-security.sarif
 - uses: github/codeql-action/upload-sarif@v3
   with: { sarif_file: vibe-security.sarif }
 ```
@@ -106,10 +125,8 @@ XSS (CWE-79) · SQL/NoSQL injection (CWE-89) · BOLA/IDOR (CWE-639) · CSRF (CWE
 Baseline for PR-only-new-findings:
 
 ```bash
-# main branch
-vibe-security scan . --update-baseline --no-fail
-# PR branch
-vibe-security scan . --baseline .vibe-security-baseline.json
+vibe-security scan . --update-baseline --no-fail    # main branch
+vibe-security scan . --baseline .vibe-security-baseline.json    # PR branch
 ```
 
 Full GitHub Actions: [`examples/github-actions.yml`](examples/github-actions.yml).
@@ -118,32 +135,28 @@ Full GitHub Actions: [`examples/github-actions.yml`](examples/github-actions.yml
 
 ## How it works with your AI
 
-Vibe Security is a **specialist skill** the AI calls when security comes up. The flow:
+Vibe Security is a **specialist skill** the AI calls when security comes up.
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ User: "/securityCheck this project"                 │
-└──────────────────┬──────────────────────────────────┘
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│ Claude / Copilot gets MCP tool catalog              │
-│  • scan_project: file walker + 26 rules + reporter  │
-│  • scan_file:    single-file fast iteration         │
-│  • list_rules:   "what rules exist for Python?"     │
-│  • get_rule_detail: "explain FE-001 in detail"      │
-└──────────────────┬──────────────────────────────────┘
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│ Project profile returned:                           │
-│  Primary language: TypeScript                       │
-│  Languages detected: TS, Python, Dockerfile, YAML   │
-│  Applicable rules: 26 of 26                         │
-└──────────────────┬──────────────────────────────────┘
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│ Findings → model fixes and explains                 │
-│ Security.md written to YOUR project root            │
-└─────────────────────────────────────────────────────┘
+User: "/securityCheck this project"
+    │
+    ▼
+Claude / Copilot gets MCP tool catalog
+  • scan_project: file walker + 36 rules + reporter
+  • scan_file:    single-file fast iteration
+  • list_rules:   "what rules exist for Python?"
+  • get_rule_detail: "explain FE-001 in detail"
+    │
+    ▼
+Project profile returned:
+  Primary language: TypeScript
+  Frameworks detected: React, Next.js, Express
+  Languages: TypeScript, Python, Dockerfile, YAML
+  Applicable rules: 36 of 36
+    │
+    ▼
+Findings → model fixes and explains
+Security.md written to YOUR project root
 ```
 
 Works with: Claude Code (CLI), VS Code Anthropic Claude extension, Cursor, Continue.dev.
@@ -186,4 +199,4 @@ Node.js 18+.
 
 ## License
 
-MIT
+MIT — see [`LICENSE`](LICENSE).

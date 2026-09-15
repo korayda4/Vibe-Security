@@ -107,6 +107,43 @@ export interface ProjectProfile {
   readonly detected: readonly Language[];
   readonly fileCounts: Readonly<Record<Language, number>>;
   readonly applicableRules: readonly string[];
+  readonly frameworks?: readonly FrameworkDetection[];
+}
+
+export type Framework =
+  | 'react'
+  | 'nextjs'
+  | 'vue'
+  | 'angular'
+  | 'svelte'
+  | 'express'
+  | 'fastify'
+  | 'nestjs'
+  | 'django'
+  | 'flask'
+  | 'fastapi'
+  | 'rails'
+  | 'sinatra'
+  | 'laravel'
+  | 'symfony'
+  | 'wordpress'
+  | 'spring'
+  | 'dotnet'
+  | 'aspnet'
+  | 'blazor'
+  | 'cpp'
+  | 'cmake'
+  | 'cplusplus'
+  | 'actix'
+  | 'axum'
+  | 'gin'
+  | 'fiber';
+
+export interface FrameworkDetection {
+  readonly name: Framework;
+  readonly category: 'frontend' | 'backend' | 'fullstack' | 'build';
+  readonly version?: string;
+  readonly evidence: readonly string[];
 }
 
 export interface ScanSummary {

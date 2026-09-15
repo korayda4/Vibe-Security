@@ -83,6 +83,26 @@ test('project profile: primary language and applicable rules', async () => {
   }
 });
 
+test('framework detection: React, Next.js, Vue, Angular, Express, Django, Laravel, .NET', async () => {
+  const { detectFrameworks } = await import('../src/engine/language.js');
+  const frameworks = await detectFrameworks(FIXTURE_DIR);
+  const names = frameworks.map((f) => f.name);
+
+  assert.ok(names.includes('react'), 'should detect React');
+  assert.ok(names.includes('nextjs'), 'should detect Next.js');
+  assert.ok(names.includes('vue'), 'should detect Vue');
+  assert.ok(names.includes('angular'), 'should detect Angular');
+  assert.ok(names.includes('express'), 'should detect Express');
+  assert.ok(names.includes('django'), 'should detect Django');
+  assert.ok(names.includes('laravel'), 'should detect Laravel');
+  assert.ok(names.includes('dotnet'), 'should detect .NET');
+
+  for (const fw of frameworks) {
+    assert.ok(['frontend', 'backend', 'fullstack', 'build'].includes(fw.category));
+    assert.ok(fw.evidence.length > 0);
+  }
+});
+
 test('getRuleById returns rule details', () => {
   const rule = getRuleById('FE-001');
   assert.ok(rule, 'FE-001 should exist');

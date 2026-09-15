@@ -1,125 +1,85 @@
-# Vibe Security'a Katki Rehberi
+# Contributing
 
-AI Vibe Coder ekosistemi icin ortak bir security katmani insa ediyoruz. PR'lar, yeni kurallar, kural iyilestirmeleri ve dil destegi cok degerli.
+Thanks for your interest in improving Vibe Security.
 
-## Yeni kural ekleme
+## Add a new rule
 
-En etkili katki: yeni bir guvenlik kurali.
+Each rule lives in `src/engine/rules/<layer>/<topic>.ts`. Pick a free ID (e.g. `BE-010`).
 
-### 1. Kural dosyasi
-
-Uygun katman altinda:
-
-```
-src/engine/rules/<katman>/<konu>.ts
-```
-
-Mevcut katmanlar: `frontend`, `backend`, `network`, `database`, `cicd`, `observability`.
-
-### 2. Kural sablonu
-
-```typescript
+```ts
 import type { Rule } from '../../../types.js';
-import { grepRule, lineColumnFromIndex, snippetAt } from '../_helpers.js';
+import { grepRule } from '../_helpers.js';
 
 const rule: Rule = {
-  id: 'XX-NNN',                         // Katman kodu + uc hane
-  title: 'Kisa, anlasilir baslik',
-  layer: 'frontend',
+  id: 'BE-010',
+  title: 'Short, clear title',
+  layer: 'backend',
   severity: 'high',
-  description: 'Zaafiyetin ne oldugunu acikla (1-2 cumle).',
-  threat: 'Saldiri vektoru ve olasilik (1 cumle).',
-  remediation: 'Adim adim fix talimati (numarali).',
-  references: [
-    'https://owasp.org/...',
-  ],
+  description: 'One paragraph — what the rule detects and why.',
+  threat: 'Attack vector and likelihood.',
+  remediation: 'Step-by-step fix instructions.',
+  references: ['https://owasp.org/...', 'https://cwe.mitre.org/...'],
   cwe: 'CWE-XXX',
   owasp: 'A0X:2021 ...',
-  languages: ['typescript', 'javascript'],
-
-  check: (ctx) => {
-    const findings = [];
-    for (const m of ctx.source.matchAll(/senin-regex/g)) {
-      if (m.index === undefined) continue;
-      const { line } = lineColumnFromIndex(ctx.source, m.index);
-      findings.push({
-        id: `${rule.id}-${ctx.relativePath}-${line}`,
-        ruleId: rule.id,
-        title: rule.title,
-        layer: rule.layer,
-        severity: rule.severity,
-        file: ctx.relativePath,
-        match: { snippet: snippetAt(ctx.source, line), line, column: m.index },
-        description: rule.description,
-        impact: rule.threat,
-        remediation: rule.remediation,
-        references: rule.references,
-        cwe: rule.cwe,
-        owasp: rule.owasp,
-        fix: {                              // Opsiyonel auto-fix
-          find: 'eski kod',
-          replace: 'yeni kod',
-          description: 'Bu ne yapar',
-        },
-      });
-    }
-    return findings;
-  },
+  languages: ['typescript', 'python'],
+  check: (ctx) => grepRule(rule, ctx, /your-pattern/g),
 };
 
 export default rule;
 ```
 
-### 3. Kayit
+Register it in `src/engine/rules/<layer>/index.ts`:
 
-`<katman>/index.ts`'e ekleyin:
-
-```typescript
-import yeniKural from './yeni-konu.js';
-
-export const rules = {
-  // ...mevcut kurallar
-  yeniKural,
-};
+```ts
+import newRule from './newRule.js';
+export const rules = { /* ... */ newRule };
 ```
 
-### 4. Test
+## Add a new language
 
-1. `test/fixtures/vulnerable-app/` altinda kuralinizi tetikleyen bir ornek ekleyin
-2. `test/test.ts`'e bir assertion ekleyin
-3. `npm test` ile dogrulayin
+1. Add the language to the `Language` union in `src/types.ts`.
+2. Add extension/filename/shebang/syntax patterns in `src/engine/language.ts`.
+3. Create rule files in `src/engine/rules/<layer>/` with `languages: ['yourlang']`.
+4. Add a test fixture file in `test/fixtures/vulnerable-app/`.
+5. Add an assertion in `test/test.ts`.
+6. Update the `Supported Languages` table in `README.md`.
 
-## PR checklist
+## Pull request checklist
 
-- [ ] Kural calistirildiginda false positive uretmiyor (en azindan yaygin pattern'lerde)
-- [ ] Severity, layer ve languages dogru ayarlanmis
-- [ ] Description, threat, remediation anlasilir Turkce/Ingilizce
-- [ ] Referanslar (OWASP, CWE, resmi docs) eklenmis
-- [ ] Auto-fix varsa, `--fix --dry-run` ile dosyayi degistirmedigi dogrulanmis
-- [ ] Yeni test fixture + assertion eklenmis
-- [ ] `npm test` ve `npm run lint` temiz
+- [ ] `npm test` passes
+- [ ] `npm run lint` passes
+- [ ] `npm run build` clean
+- [ ] Test fixture added for new rules
+- [ ] CWE / OWASP fields populated
+- [ ] No secrets / tokens / PII in code or fixtures
+- [ ] Docs updated if user-facing behavior changed
 
-## Gelistirme ortami
+## Commit message format
 
-```bash
-npm install
-npm run dev      # tsc --watch
-npm test         # test runner
-node dist/cli.js scan .   # manual tarama
+```
+<type>(<scope>): <subject>
+
+<optional body>
+```
+
+Types: `feat`, `fix`, `docs`, `test`, `chore`, `refactor`, `perf`.
+Scopes: `rules`, `scanner`, `output`, `mcp`, `integrations`, `docs`.
+
+Examples:
+
+```
+feat(rules): add PHP SQL injection rule
+fix(scanner): skip node_modules with absolute path
+docs: clarify auto-fix workflow
 ```
 
 ## Code style
 
-- TypeScript strict mode
-- ESM modulleri (`.js` extension'lari ile)
-- Functional, yan etkisiz kurallar (sadece `check` fonksiyonu)
-- Her kural izole, bagimsiz test edilebilir
-- CWE ve OWASP referansi zorunlu
+- TypeScript strict mode, ESM, `.js` extensions on imports
+- Functional, side-effect-free rules
+- One rule per file
+- Tests via `node --test`
 
-## Iletisim
+## License
 
-- Issues: GitHub Issues
-- Discussions: GitHub Discussions
-- Discord: (yakinda)
-
-Lisans: MIT â€” katkilarinizla proje yeserir.
+By contributing, you agree that your contributions will be licensed under MIT.

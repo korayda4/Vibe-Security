@@ -4,13 +4,15 @@
 
 | Version | Supported |
 |---|---|
-| 0.1.x | ✅ |
+| 0.3.x | ✅ |
+| 0.2.x | ✅ |
+| 0.1.x | ⚠️ critical fixes only |
 
 ## Reporting a vulnerability
 
 Please **do not** open a public GitHub issue for security vulnerabilities.
 
-Email: **security@korayda4.dev** (placeholder — replace with your real address)
+Email: **koraydemirmc@gmail.com**
 
 Include:
 
@@ -24,5 +26,5 @@ We aim to respond within 48 hours and ship a fix within 7 days for critical issu
 ## Out of scope
 
 - Vulnerabilities in third-party dependencies (report upstream)
-- Vulnerabilities in the user's scanned project (the scanner is read-only — it does not modify code without `--fix` and only with the patches defined in its own rule files)
+- Vulnerabilities in the user's scanned project
 - Theoretical issues without a concrete exploit path

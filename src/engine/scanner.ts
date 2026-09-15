@@ -12,6 +12,7 @@ import type {
   Severity,
 } from '../types.js';
 import { loadConfig, applyConfig, type AiSecurityConfig } from './config.js';
+import { detectFrameworks } from './language.js';
 
 const ALL_LAYERS: readonly Layer[] = ['frontend', 'backend', 'network', 'database', 'cicd', 'observability'];
 const PER_FILE_FINDING_CAP = 50;
@@ -107,9 +108,11 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
   const finishedAt = new Date();
   const summary = summarize(findings);
   const profileBase = buildProjectProfile(sourcesForProfile);
+  const frameworks = await detectFrameworks(rootDir);
   const profile = {
     ...profileBase,
     applicableRules: Array.from(applicableRules).sort(),
+    frameworks,
   };
 
   return {

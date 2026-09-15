@@ -145,6 +145,246 @@ export interface ProjectProfile {
   readonly primary: Language;
   readonly detected: readonly Language[];
   readonly fileCounts: Readonly<Record<Language, number>>;
+  readonly frameworks: readonly FrameworkDetection[];
+}
+
+export type Framework =
+  | 'react'
+  | 'nextjs'
+  | 'vue'
+  | 'angular'
+  | 'svelte'
+  | 'express'
+  | 'fastify'
+  | 'nestjs'
+  | 'django'
+  | 'flask'
+  | 'fastapi'
+  | 'rails'
+  | 'sinatra'
+  | 'laravel'
+  | 'symfony'
+  | 'wordpress'
+  | 'spring'
+  | 'dotnet'
+  | 'aspnet'
+  | 'blazor'
+  | 'cpp'
+  | 'cmake'
+  | 'cplusplus'
+  | 'actix'
+  | 'axum'
+  | 'gin'
+  | 'fiber';
+
+export interface FrameworkDetection {
+  readonly name: Framework;
+  readonly category: 'frontend' | 'backend' | 'fullstack' | 'build';
+  readonly version?: string;
+  readonly evidence: readonly string[];
+}
+
+const FRONTEND_PACKAGES: Record<string, Framework> = {
+  react: 'react',
+  next: 'nextjs',
+  nextjs: 'nextjs',
+  vue: 'vue',
+  '@angular/core': 'angular',
+  svelte: 'svelte',
+};
+
+const BACKEND_PACKAGES: Record<string, Framework> = {
+  express: 'express',
+  fastify: 'fastify',
+  '@nestjs/core': 'nestjs',
+  django: 'django',
+  flask: 'flask',
+  fastapi: 'fastapi',
+  rails: 'rails',
+  sinatra: 'sinatra',
+  laravel: 'laravel',
+  symfony: 'symfony',
+  '@springframework': 'spring',
+  '@aspnet/core': 'aspnet',
+  blazor: 'blazor',
+};
+
+export async function detectFrameworks(
+  rootDir: string
+): Promise<FrameworkDetection[]> {
+  const fs = await import('node:fs/promises');
+  const path = await import('node:path');
+  const detections: FrameworkDetection[] = [];
+
+  async function fileExistsWithExtension(dir: string, ext: string): Promise<boolean> {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      return entries.some((e) => e.isFile() && e.name.toLowerCase().endsWith(ext));
+    } catch {
+      return false;
+    }
+  }
+
+  const tryRead = async (rel: string): Promise<string | null> => {
+    try {
+      return await fs.readFile(path.join(rootDir, rel), 'utf8');
+    } catch {
+      return null;
+    }
+  };
+
+  const packageJson = await tryRead('package.json');
+  if (packageJson) {
+    try {
+      const pkg = JSON.parse(packageJson) as {
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+      };
+      const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+      const evidence: string[] = [];
+      for (const [name, ver] of Object.entries(allDeps)) {
+        const fw = FRONTEND_PACKAGES[name] ?? BACKEND_PACKAGES[name];
+        if (!fw) continue;
+        evidence.push(`${name}@${ver}`);
+        const existing = detections.find((d) => d.name === fw);
+        if (!existing) {
+          const isFrontend = (Object.values(FRONTEND_PACKAGES) as string[]).includes(fw);
+          detections.push({
+            name: fw,
+            category: isFrontend ? 'frontend' : 'backend',
+            version: ver,
+            evidence: [`package.json: ${name}@${ver}`],
+          });
+        }
+      }
+    } catch {
+      // ignore malformed package.json
+    }
+  }
+
+  const composerJson = await tryRead('composer.json');
+  if (composerJson) {
+    try {
+      const composer = JSON.parse(composerJson) as {
+        require?: Record<string, string>;
+      };
+      for (const [name, ver] of Object.entries(composer.require ?? {})) {
+        let fw: Framework | null = null;
+        if (name.startsWith('laravel/framework')) fw = 'laravel';
+        else if (name.startsWith('symfony/')) fw = 'symfony';
+        if (!fw) continue;
+        if (!detections.find((d) => d.name === fw)) {
+          detections.push({
+            name: fw,
+            category: 'backend',
+            version: ver,
+            evidence: [`composer.json: ${name}@${ver}`],
+          });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const requirementsTxt = await tryRead('requirements.txt');
+  if (requirementsTxt) {
+    const pyFrameworks: Array<{ pkg: string; fw: Framework }> = [
+      { pkg: 'django', fw: 'django' },
+      { pkg: 'flask', fw: 'flask' },
+      { pkg: 'fastapi', fw: 'fastapi' },
+    ];
+    for (const { pkg, fw } of pyFrameworks) {
+      const re = new RegExp(`^${pkg}\\s*[>=~]=?\\s*([\\d.]+)`, 'm');
+      const m = requirementsTxt.match(re);
+      if (m && !detections.find((d) => d.name === fw)) {
+        detections.push({
+          name: fw,
+          category: 'backend',
+          version: m[1],
+          evidence: [`requirements.txt: ${pkg}==${m[1]}`],
+        });
+      }
+    }
+  }
+
+  const pyproject = await tryRead('pyproject.toml');
+  if (pyproject) {
+    const pyFrameworks: Array<{ pkg: string; fw: Framework }> = [
+      { pkg: 'django', fw: 'django' },
+      { pkg: 'flask', fw: 'flask' },
+      { pkg: 'fastapi', fw: 'fastapi' },
+    ];
+    for (const { pkg, fw } of pyFrameworks) {
+      const re = new RegExp(`${pkg}\\s*[>=~]=?\\s*["']?([\\d.]+)`, 'm');
+      const m = pyproject.match(re);
+      if (m && !detections.find((d) => d.name === fw)) {
+        detections.push({
+          name: fw,
+          category: 'backend',
+          version: m[1],
+          evidence: [`pyproject.toml: ${pkg}==${m[1]}`],
+        });
+      }
+    }
+  }
+
+  const gemfile = await tryRead('Gemfile');
+  if (gemfile) {
+    if (/^\s*gem\s+['"]rails['"]/m.test(gemfile) && !detections.find((d) => d.name === 'rails')) {
+      detections.push({ name: 'rails', category: 'backend', evidence: ['Gemfile: rails'] });
+    }
+    if (/^\s*gem\s+['"]sinatra['"]/m.test(gemfile) && !detections.find((d) => d.name === 'sinatra')) {
+      detections.push({ name: 'sinatra', category: 'backend', evidence: ['Gemfile: sinatra'] });
+    }
+  }
+
+  const csprojExists = await fileExistsWithExtension(rootDir, '.csproj');
+  const slnExists = await fileExistsWithExtension(rootDir, '.sln');
+  if (csprojExists || slnExists) {
+    if (!detections.find((d) => d.name === 'dotnet')) {
+      detections.push({
+        name: 'dotnet',
+        category: 'backend',
+        evidence: [csprojExists ? '*.csproj found' : '*.sln found'],
+      });
+    }
+  }
+
+  const cppFiles = await fileExistsWithExtension(rootDir, '.cpp');
+  if (cppFiles) {
+    if (!detections.find((d) => d.name === 'cpp')) {
+      detections.push({ name: 'cpp', category: 'backend', evidence: ['*.cpp files found'] });
+    }
+  }
+
+  const cargoToml = await tryRead('Cargo.toml');
+  if (cargoToml && /^\[package\]/m.test(cargoToml)) {
+    const actix = /^actix-web\s*=/m.test(cargoToml);
+    const axum = /^axum\s*=/m.test(cargoToml);
+    if (actix && !detections.find((d) => d.name === 'actix')) {
+      detections.push({ name: 'actix', category: 'backend', evidence: ['Cargo.toml: actix-web'] });
+    } else if (axum && !detections.find((d) => d.name === 'axum')) {
+      detections.push({ name: 'axum', category: 'backend', evidence: ['Cargo.toml: axum'] });
+    }
+  }
+
+  const goMod = await tryRead('go.mod');
+  if (goMod) {
+    if (/^\s*github\.com\/gin-gonic\/gin/m.test(goMod) && !detections.find((d) => d.name === 'gin')) {
+      detections.push({ name: 'gin', category: 'backend', evidence: ['go.mod: gin-gonic/gin'] });
+    }
+    if (/^\s*github\.com\/gofiber\/fiber/m.test(goMod) && !detections.find((d) => d.name === 'fiber')) {
+      detections.push({ name: 'fiber', category: 'backend', evidence: ['go.mod: gofiber/fiber'] });
+    }
+  }
+
+  const cmakeLists = await tryRead('CMakeLists.txt');
+  if (cmakeLists && !detections.find((d) => d.name === 'cmake')) {
+    detections.push({ name: 'cmake', category: 'build', evidence: ['CMakeLists.txt found'] });
+  }
+
+  return detections;
 }
 
 export function buildProjectProfile(
@@ -190,5 +430,10 @@ export function buildProjectProfile(
     fileCounts[lang as Language] = count;
   }
 
-  return { primary, detected, fileCounts };
+  return {
+    primary,
+    detected,
+    fileCounts,
+    frameworks: [],
+  };
 }
