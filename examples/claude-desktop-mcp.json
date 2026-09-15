@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "vibe-security": {
+      "command": "node",
+      "args": ["C:/path/to/vibe-security/dist/index.js"]
+    }
+  }
+}

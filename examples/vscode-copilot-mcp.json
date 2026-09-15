@@ -1,0 +1,10 @@
+{
+  "_comment": "Bu dosyayi .vscode/settings.json icine kopyala veya VS Code User Settings'e yapistir. GitHub repo URL'i kendi fork'unuzla degistirin.",
+  "mcp.servers": {
+    "vibe-security": {
+      "command": "npx",
+      "args": ["-y", "github:korayda4/Vibe-Security"],
+      "type": "stdio"
+    }
+  }
+}

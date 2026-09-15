@@ -1,0 +1,9 @@
+{
+  "_comment": "Bu dosyayi ~/.claude/mcp_servers.json icine kopyala. GitHub repo URL'i kendi fork'unuzla degistirin.",
+  "mcpServers": {
+    "vibe-security": {
+      "command": "npx",
+      "args": ["-y", "github:korayda4/Vibe-Security"]
+    }
+  }
+}
