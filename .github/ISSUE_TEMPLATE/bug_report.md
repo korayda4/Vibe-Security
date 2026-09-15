@@ -22,13 +22,13 @@ What you expected to happen.
 
 ## Actual behavior
 
-What actually happened â€” paste the relevant output (redact secrets).
+What actually happened — paste the relevant output (redact secrets).
 
 ## Environment
 
 - OS: [Windows / macOS / Linux]
 - Node version: `node --version`
-- Vibe Security version: `npm ls -g vibe-security` or `npx vibe-security --version`
+- Vibe Security version: `npm ls -g @korayda4/vibe-security` or `vibe-security --version`
 - Host: [Claude Code / VS Code Claude extension / standalone CLI]
 - Host version:
 
@@ -38,4 +38,4 @@ Paste the relevant stderr/stdout (redact tokens).
 
 ## Additional context
 
-Anything else relevant â€” project size, language, rule ID if known.
+Anything else relevant -- project size, language, rule ID if known.

@@ -30,7 +30,7 @@ export function toSarif(result: ScanResult): unknown {
   const sarifResults = result.findings.map((f) => ({
     ruleId: f.ruleId,
     level: severityToSarifLevel(f.severity),
-    message: { text: `${f.title} â€” ${f.impact}` },
+    message: { text: `${f.title} -- ${f.impact}` },
     locations: [
       {
         physicalLocation: {
@@ -113,7 +113,7 @@ export function toJunit(result: ScanResult): string {
     (f) =>
       `    <testcase classname="${escapeXml(f.layer)}" name="${escapeXml(f.ruleId)} ${escapeXml(f.title)}" time="0">\n` +
       `      <failure type="${escapeXml(f.severity)}" message="${escapeXml(f.title)}">\n` +
-      `        ${escapeXml(f.file)}:${f.match.line} â€” ${escapeXml(f.impact)}\n` +
+      `        ${escapeXml(f.file)}:${f.match.line} -- ${escapeXml(f.impact)}\n` +
       `      </failure>\n` +
       `    </testcase>`
   );

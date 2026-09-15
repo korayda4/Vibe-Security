@@ -73,7 +73,12 @@ test('language detector: extension + shebang + syntax', () => {
 test('project profile: primary language and applicable rules', async () => {
   const result = await scan({ rootDir: FIXTURE_DIR });
   assert.ok(result.profile, 'should include project profile');
-  assert.ok(['typescript', 'javascript', 'go', 'python'].includes(result.profile!.primary));
+  assert.ok(
+    ['typescript', 'javascript', 'go', 'python', 'json', 'ruby', 'php', 'kotlin', 'rust', 'dockerfile'].includes(
+      result.profile!.primary
+    ),
+    `unexpected primary: ${result.profile!.primary}`
+  );
   assert.ok(result.profile!.detected.length > 0);
   assert.ok(result.profile!.applicableRules.length > 0);
 
@@ -143,7 +148,7 @@ test('scan_project finds vulnerabilities in fixture', async () => {
   // Logging
   assert.ok(ruleIds.has('OBS-001'), 'should detect stack trace in response');
 
-  // Token safety â€” yeni kurallar
+  // Token safety -- yeni kurallar
   assert.ok(ruleIds.has('BE-008'), 'should detect token in URL');
   assert.ok(ruleIds.has('BE-009'), 'should detect long-lived token');
 

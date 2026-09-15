@@ -29,13 +29,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'scan_project',
         description:
-          'Tum projeyi guvenlik acisindan tarar. Butun kurallari uygular, bulgulari kategorize eder ve istege bagli olarak Security.md raporu yazar.',
+          'Scan the entire project. Applies all rules, categorizes findings, and optionally writes a Security.md report.',
         inputSchema: {
           type: 'object',
           properties: {
             rootDir: {
               type: 'string',
-              description: 'Taranacak dizin (default: cwd)',
+              description: 'Directory to scan (default: cwd)',
             },
             layers: {
               type: 'array',
@@ -43,7 +43,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 type: 'string',
                 enum: ['frontend', 'backend', 'network', 'database', 'cicd', 'observability'],
               },
-              description: 'Taramayi bu katmanlarla sinirla',
+              description: 'Limit the scan to these layers',
             },
             languages: {
               type: 'array',
@@ -71,15 +71,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             ignore: {
               type: 'array',
               items: { type: 'string' },
-              description: 'HariÃ§ tutulacak glob desenleri',
+              description: 'Glob patterns to ignore',
             },
             baselinePath: {
               type: 'string',
-              description: 'Baseline dosyasi â€” sadece yeni bulgulari gosterir',
+              description: 'Baseline file -- show only NEW findings',
             },
             includeFixes: {
               type: 'boolean',
-              description: 'Auto-fixable bulgulari da ozet olarak goster',
+              description: 'Also summarize auto-fixable findings',
               default: false,
             },
           },
@@ -89,14 +89,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'scan_file',
         description:
-          'Tek bir dosyayi belirli kurallarla tarar. Belirli bir bulguyu dogrulamak veya yeni eklenen dosyayi hizla kontrol etmek icin kullan.',
+          'Scan a single file with selected rules. Use this to validate a specific finding or quickly check a newly-added file.',
         inputSchema: {
           type: 'object',
           required: ['filePath'],
           properties: {
             filePath: {
               type: 'string',
-              description: 'Taranacak dosyanin mutlak yolu',
+              description: 'Absolute path of the file to scan',
             },
             layers: {
               type: 'array',
@@ -204,22 +204,22 @@ const fixable = params.includeFixes
       const text = [
         summary,
         '',
-        reportPath ? `ğŸ“ Report written to: \`${reportPath}\`` : '',
-        params.baselinePath ? `\nğŸ“‹ Baseline diff: showing only NEW findings` : '',
+        reportPath ? `📝 Report written to: \`${reportPath}\`` : '',
+        params.baselinePath ? `\n📋 Baseline diff: showing only NEW findings` : '',
         '',
         '## Top Findings',
         '',
         topFindings
           .map(
             (f) =>
-              `- **${f.severity.toUpperCase()}** [\`${f.ruleId}\`] ${f.title} â€” \`${f.file}:${f.match.line}\`${f.fix ? ' ğŸ”§' : ''}`
+              `- **${f.severity.toUpperCase()}** [\`${f.ruleId}\`] ${f.title} -- \`${f.file}:${f.match.line}\`${f.fix ? ' 🔧' : ''}`
           )
           .join('\n'),
         displayFindings.length > 30
-          ? `\n\nâ€¦and ${displayFindings.length - 30} more (see Security.md).`
+          ? `\n\n...and ${displayFindings.length - 30} more (see Security.md).`
           : '',
         fixable.length > 0
-          ? `\n\n## ğŸ”§ Auto-fixable (${fixable.length})\n\n` +
+          ? `\n\n## 🔧 Auto-fixable (${fixable.length})\n\n` +
             fixable
               .map((f) => `### [\`${f.ruleId}\`] ${f.file}:${f.match.line}\n${f.fix!.description}\n`)
               .join('\n')
@@ -293,16 +293,16 @@ const fixable = params.includeFixes
             .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
             .map(
               (f) =>
-                `- **${f.severity.toUpperCase()}** [\`${f.ruleId}\`] ${f.title}\n  \`${f.file}:${f.match.line}\` â€” ${f.match.snippet.trim().split('\n')[0]}`
+                `- **${f.severity.toUpperCase()}** [\`${f.ruleId}\`] ${f.title}\n  \`${f.file}:${f.match.line}\` -- ${f.match.snippet.trim().split('\n')[0]}`
             )
             .join('\n')
-        : 'âœ… No findings for this file with the selected rules.';
+        : '✅ No findings for this file with the selected rules.';
 
       return {
         content: [
           {
             type: 'text',
-            text: `# File Scan â€” ${path.basename(params.filePath)}\n\nLanguage: \`${language}\`\nRules applied: ${applicable.length}\nFindings: ${findings.length}\n\n${formatted}`,
+            text: `# File Scan -- ${path.basename(params.filePath)}\n\nLanguage: \`${language}\`\nRules applied: ${applicable.length}\nFindings: ${findings.length}\n\n${formatted}`,
           },
         ],
         isError: false,
@@ -318,7 +318,7 @@ const fixable = params.includeFixes
       const text = rules
         .map(
           (r) =>
-            `- [\`${r.id}\`] **${r.severity.toUpperCase()}** Â· ${r.layer} Â· ${r.title}\n  Languages: ${r.languages.join(', ')}`
+            `- [\`${r.id}\`] **${r.severity.toUpperCase()}** - ${r.layer} - ${r.title}\n  Languages: ${r.languages.join(', ')}`
         )
         .join('\n');
 
@@ -340,7 +340,7 @@ const fixable = params.includeFixes
         return errorResult(`Rule not found: ${params.ruleId}`);
       }
       const text = [
-        `# ${rule.id} â€” ${rule.title}`,
+        `# ${rule.id} -- ${rule.title}`,
         '',
         `- **Layer:** ${rule.layer}`,
         `- **Severity:** ${rule.severity}`,

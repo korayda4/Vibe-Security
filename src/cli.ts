@@ -142,7 +142,7 @@ async function cmdInit(rootDir: string): Promise<void> {
 
   await fs.mkdir(path.dirname(configPath), { recursive: true });
   await fs.writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
-  console.log(`âœ… ${configPath}`);
+  console.log(`✅ ${configPath}`);
 for (const [target, content] of [
     [slashCommandPath, SLASH_COMMAND_CLAUDE],
     [vscodeSettingsPath, VSCODE_SETTINGS],
@@ -150,13 +150,13 @@ for (const [target, content] of [
   ] as const) {
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, content, 'utf8');
-    console.log(`âœ… ${target}`);
+    console.log(`✅ ${target}`);
   }
 
-  console.log('\nğŸ‘‰ Next:');
-  console.log('   â€¢ Claude Code: type /securityCheck');
-  console.log('   â€¢ VS Code: reload window, MCP server will be picked up automatically');
-  console.log('   â€¢ CI: add `npx -y vibe-security scan . --format sarif` to your workflow');
+  console.log('\n👉 Next:');
+  console.log('   • Claude Code: type /securityCheck');
+  console.log('   • VS Code: reload window, MCP server will be picked up automatically');
+  console.log('   • CI: add `npx -y vibe-security scan . --format sarif` to your workflow');
 }
 
 async function cmdList(): Promise<void> {
@@ -178,7 +178,7 @@ async function cmdScan(args: CliArgs): Promise<number> {
     return cmdWatch(args);
   }
 
-  console.log(`ğŸ” Scanning ${rootDir}...`);
+  console.log(` Scanning ${rootDir}...`);
   const config = await loadConfig(rootDir);
   const result = await scan({
     rootDir,
@@ -193,7 +193,7 @@ const baselinePath = args.baseline ?? config.baseline;
     const diff = diffAgainstBaseline(result, baseline);
     displayFindings = diff.newFindings;
     console.log(
-      `ğŸ“‹ Baseline: ${baseline ? `${baseline.findings.length} known` : 'none'} â†’ ${diff.newFindings.length} new, ${diff.resolvedFindings.length} resolved`
+      `📋 Baseline: ${baseline ? `${baseline.findings.length} known` : 'none'} -> ${diff.newFindings.length} new, ${diff.resolvedFindings.length} resolved`
     );
   }
 if (args.fix) {
@@ -203,38 +203,38 @@ if (args.fix) {
     });
     console.log('\n' + formatFixSummary(fixSummary, args.dryRun));
     if (!args.dryRun && fixSummary.applied.length > 0) {
-      console.log(`\nğŸ”§ ${fixSummary.applied.length} file(s) modified.`);
+      console.log(`\n🔧 ${fixSummary.applied.length} file(s) modified.`);
     }
   }
 if (args.format === 'markdown') {
     const reportPath = args.output ?? path.join(rootDir, 'Security.md');
     const filtered = { ...result, findings: displayFindings };
     await writeSecurityReport(filtered, reportPath);
-    console.log(`ğŸ“ Report: ${reportPath}`);
+    console.log(`📝 Report: ${reportPath}`);
   } else {
     const out = formatOutput(args.format, { ...result, findings: displayFindings });
     const outPath = args.output ?? defaultOutputPath(rootDir, args.format);
     await fs.writeFile(outPath, out, 'utf8');
-    console.log(`ğŸ“ ${args.format.toUpperCase()} â†’ ${outPath}`);
+    console.log(`📝 ${args.format.toUpperCase()} -> ${outPath}`);
   }
 if (args.updateBaseline) {
     const basePath = baselinePath ?? path.join(rootDir, '.vibe-security-baseline.json');
     await writeBaseline(basePath, result);
-    console.log(`ğŸ“Œ Baseline updated: ${basePath}`);
+    console.log(`📌 Baseline updated: ${basePath}`);
   }
 const sevEmoji: Record<string, string> = {
-    critical: 'ğŸŸ£',
-    high: 'ğŸ”´',
-    medium: 'ğŸŸ ',
-    low: 'ğŸŸ¡',
-    info: 'ğŸ”µ',
+    critical: '🟣',
+    high: '🔴',
+    medium: '🟠',
+    low: '🟡',
+    info: '🔵',
   };
   console.log(
-    `\n${displayFindings.length} finding(s) â€” ` +
+    `\n${displayFindings.length} finding(s) -- ` +
       Object.entries(result.summary.bySeverity)
         .filter(([, n]) => n > 0)
         .map(([s, n]) => `${sevEmoji[s]} ${s}:${n}`)
-        .join(' Â· ')
+        .join(' - ')
   );
 
   return args.noFail || displayFindings.length === 0 ? 0 : 1;
@@ -247,7 +247,7 @@ function defaultOutputPath(rootDir: string, format: string): string {
 
 async function cmdWatch(args: CliArgs): Promise<number> {
   const rootDir = path.resolve(args.target);
-  console.log(`ğŸ‘€ Watching ${rootDir} (Ctrl+C to stop)...`);
+  console.log(`👀 Watching ${rootDir} (Ctrl+C to stop)...`);
 
   let running = false;
   async function rescan() {
@@ -258,7 +258,7 @@ async function cmdWatch(args: CliArgs): Promise<number> {
       const reportPath = path.join(rootDir, 'Security.md');
       await writeSecurityReport(result, reportPath);
       const ts = new Date().toLocaleTimeString();
-      console.log(`[${ts}] ${result.summary.totalFindings} finding(s) â†’ ${reportPath}`);
+      console.log(`[${ts}] ${result.summary.totalFindings} finding(s) -> ${reportPath}`);
     } finally {
       running = false;
     }
@@ -281,7 +281,7 @@ async function cmdBaseline(args: CliArgs): Promise<number> {
     const result = await scan({ rootDir });
     const basePath = path.join(rootDir, '.vibe-security-baseline.json');
     await writeBaseline(basePath, result);
-    console.log(`ğŸ“Œ Baseline updated: ${basePath} (${result.findings.length} entries)`);
+    console.log(`📌 Baseline updated: ${basePath} (${result.findings.length} entries)`);
     return 0;
   }
   console.error('Usage: vibe-security baseline update');
@@ -314,34 +314,36 @@ const SLASH_COMMAND_CLAUDE = `---
 description: Run Vibe Security scan on the current project and report findings
 ---
 
-Bu projeyi gÃ¼venlik aÃ§Ä±sÄ±ndan tara.
+Scan this project for security issues.
 
-AÅŸaÄŸÄ±daki araÃ§larÄ± (MCP tools) sÄ±rayla kullan:
+Use the following MCP tools in order:
 
-1. **mcp__vibe-security__scan_project** â€” TÃ¼m projeyi tara. \`rootDir\` parametresini geÃ§erli Ã§alÄ±ÅŸma dizinine ayarla.
-2. EÄŸer kullanÄ±cÄ± argÃ¼man verdiyse (\$ARGUMENTS):
-   - \`--frontend\` / \`--backend\` / \`--network\` / \`--database\` / \`--cicd\` / \`--observability\` â†’ \`layers\` parametresini filtrele
-   - \`--fix\` â†’ \`mcp__vibe-security__get_rule_detail\` ile top 3 critical kuralÄ±n detaylarÄ±nÄ± Ã§ek, kullanÄ±cÄ±ya uygulama planÄ± sun
-   - \`--baseline\` â†’ scan_project Ã§Ä±ktÄ±sÄ±nÄ± mevcut baseline ile karÅŸÄ±laÅŸtÄ±r, sadece yenileri raporla
-   - \`--rule <id>\` â†’ sadece o kuralÄ± Ã§alÄ±ÅŸtÄ±r (\`ruleIds\` parametresi)
-   - \`--json\` â†’ JSON Ã§Ä±ktÄ± iste, tablo formatÄ± kullanma
+1. **mcp__vibe-security__scan_project** -- Scan the entire project. Set the \`rootDir\` parameter to the current working directory.
 
-3. BulgularÄ± **kritik â†’ yÃ¼ksek â†’ orta â†’ dÃ¼ÅŸÃ¼k** sÄ±rasÄ±yla Ã¶zetle.
-4. **Ä°lk 3 bulgu** iÃ§in somut fix Ã¶nerisi yaz (kod Ã¶rneÄŸi ile).
-5. Security.md dosyasÄ± zaten MCP tarafÄ±ndan yazÄ±ldÄ±. KullanÄ±cÄ±ya dosya yolunu ve toplam bulgu sayÄ±sÄ±nÄ± gÃ¶ster.
+2. If the user provided arguments (\$ARGUMENTS):
+   - \`--frontend\` / \`--backend\` / \`--network\` / \`--database\` / \`--cicd\` / \`--observability\` -> filter via the \`layers\` parameter
+   - \`--fix\` -> call \`mcp__vibe-security__get_rule_detail\` for the top 3 critical rules to extract fix suggestions, then present an apply plan to the user
+   - \`--baseline\` -> compare \`mcp__vibe-security__scan_project\` output against the existing baseline, report only the new findings
+   - \`--rule <id>\` -> run only that rule (\`ruleIds\` parameter)
+   - \`--json\` -> request JSON output instead of the table format
 
-Yapma:
-- BulgularÄ± gizleme veya kÃ¼Ã§Ã¼mseme.
-- Emin olmadÄ±ÄŸÄ±n fix Ã¶nerisi verme; bunun yerine kuralÄ±n dokÃ¼mantasyonuna yÃ¶nlendir.
-- Scan Ã§alÄ±ÅŸtÄ±rmadan Ã¶nce kullanÄ±cÄ±ya soru sorma; doÄŸrudan tara.
+3. Summarize findings in order: **critical -> high -> medium -> low**.
+
+4. For the **first 3 findings**, write concrete fix suggestions (with code examples).
+
+5. \`Security.md\` is already written by the MCP server. Show the user the file path and total finding count.
+
+Do NOT:
+- Hide or downplay findings.
+- Suggest a fix you are not sure about; point the user to the rule documentation instead.
+- Ask clarifying questions before scanning -- scan directly.
 `;
 
 const VSCODE_SETTINGS = JSON.stringify(
   {
     'mcp.servers': {
       'vibe-security': {
-        command: 'npx',
-        args: ['-y', 'vibe-security'],
+        command: 'vibe-security',
         type: 'stdio',
       },
     },
@@ -351,7 +353,7 @@ const VSCODE_SETTINGS = JSON.stringify(
 ) + '\n';
 
 const SLASH_COMMAND_GITHUB = `---
-description: Auto-invoked when user runs /securityCheck â€” runs Vibe Security MCP scan and explains findings
+description: Auto-invoked when user runs /securityCheck -- runs Vibe Security MCP scan and explains findings
 applyTo: "**"
 ---
 
@@ -367,11 +369,11 @@ When the user runs /securityCheck (with or without arguments), you MUST:
 4. Confirm that Security.md was written at the workspace root.
 5. If no findings: congratulate the user.
 
-Do not ask clarifying questions before scanning â€” just scan.
+Do not ask clarifying questions before scanning -- just scan.
 
 Available MCP tools:
-- \`scan_project\` â€” full project scan
-- \`scan_file\` â€” single file scan
-- \`list_rules\` â€” list all rules
-- \`get_rule_detail\` â€” get rule details (use this for auto-fix suggestions)
+- \`scan_project\` -- full project scan
+- \`scan_file\` -- single file scan
+- \`list_rules\` -- list all rules
+- \`get_rule_detail\` -- get rule details (use this for auto-fix suggestions)
 `;
