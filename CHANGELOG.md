@@ -2,7 +2,7 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com).
 
-## [0.1.0] â€” 2026-09-15
+## [0.1.0] — 2026-09-15
 
 ### Added
 
@@ -17,6 +17,17 @@ All notable changes to Vibe Security are documented here. Format follows [Keep a
 - `/securityCheck` slash command for Claude Code and VS Code Anthropic Claude extension
 - `vibe-security init` command to bootstrap any project with config + slash command
 - `vibe-security scan . --baseline` and `--update-baseline` flow
+
+### Output
+
+The scanner writes `Security.md` to the scanned project's root. The file is **generated at runtime** — it is not part of this repo and is gitignored by default. Sample structure:
+
+- Executive summary table (severity counts)
+- Findings grouped by layer
+- Each finding: rule ID, severity, CWE/OWASP, file:line, snippet, **detailed remediation**
+- "How to fix" footer
+
+See `docs/SECURITY_REPORT.example.md` for a full example.
 
 ### Documentation
 

@@ -94,6 +94,25 @@ npx -y github:korayda4/Vibe-Security list                         # list all rul
 npx -y github:korayda4/Vibe-Security baseline update              # snapshot current findings
 ```
 
+### What `Security.md` looks like in your project
+
+When you run `vibe-security scan .` in any project, a `Security.md` file is **generated at runtime** at your project's root. It contains:
+
+- Executive summary table (counts by severity)
+- Findings grouped by layer (Frontend, Backend, Network, Database, CI/CD, Observability)
+- Each finding shows: rule ID, severity, CWE / OWASP reference, file:line, code snippet, **detailed remediation** (the fix to apply)
+- "How to fix" footer with workflow guidance
+
+**Important:** `Security.md` is **not** part of this repo. It's auto-generated in *your* project. See a sample here: [`docs/SECURITY_REPORT.example.md`](docs/SECURITY_REPORT.example.md).
+
+`.gitignore` ships with this pattern so the generated file never accidentally gets committed:
+
+```
+Security.md
+Security-*.md
+.vibe-security-baseline.json
+```
+
 ---
 
 ## Supported Languages

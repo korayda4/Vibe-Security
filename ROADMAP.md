@@ -6,7 +6,9 @@ Bu dokuman Vibe Security projesinin **neyi**, **niye**, **hangi sira ile** yapti
 
 AI Vibe Coder'lar icin **varsayilan secenek** haline gelen bir security katmani. Claude Code veya VS Code Anthropic Claude extension'a `/securityCheck` yazildiginda otomatik devreye giren, hatalari acikca soyleyen ve duzelten bir "guvenlik muhendisi skill" i.
 
-**Temel prensip:** AI sadece Claude tarafinda zaten var â€” biz kural motoru + context + fix ureteciyiz. AI'in verdigi yanlislari yakalayan, dogrulari oneren bir "guvenlik uzmanligi modulu."
+**Temel prensip:** AI sadece Claude tarafinda zaten var — biz kural motoru + context + fix ureteciyiz. AI'in verdigi yanlislari yakalayan, dogrulari oneren bir "guvenlik uzmanligi modulu."
+
+**Output:** Tarama `Security.md` dosyasini kullanici projesinin kokune yazar — repo'muzda degil, runtime'da uretilir.
 
 ## Tasarim kararlari
 
