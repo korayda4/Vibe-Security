@@ -1,0 +1,64 @@
+{
+  "name": "vibe-security",
+  "version": "0.1.0",
+  "description": "Security guard MCP server for AI Vibe Coders — scans projects across 6 layers, writes Security.md, ships auto-fix patches. Claude Code and VS Code Anthropic Claude extension compatible.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "vibe-security": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "cli": "node dist/cli.js",
+    "test": "node --test --import tsx --test-reporter=spec test/test.ts",
+    "lint": "tsc --noEmit",
+    "scan": "node dist/cli.js scan",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude-code",
+    "claude-extension",
+    "vscode",
+    "anthropic",
+    "security",
+    "sast",
+    "scanner",
+    "vibe-coding",
+    "vibe-security",
+    "vibe-security-mcp",
+    "xss",
+    "sql-injection",
+    "owasp",
+    "sarif"
+  ],
+  "author": "Koray Demir",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/korayda4/Vibe-Security.git"
+  },
+  "bugs": {
+    "url": "https://github.com/korayda4/Vibe-Security/issues"
+  },
+  "homepage": "https://github.com/korayda4/Vibe-Security#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.2"
+  }
+}
