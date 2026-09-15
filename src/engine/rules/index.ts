@@ -5,6 +5,10 @@ import { rules as networkRules } from './network/index.js';
 import { rules as databaseRules } from './database/index.js';
 import { rules as cicdRules } from './cicd/index.js';
 import { rules as observabilityRules } from './observability/index.js';
+import { rules as rustRules } from './rust/index.js';
+import { rules as rubyRules } from './ruby/index.js';
+import { rules as phpRules } from './php/index.js';
+import { rules as kotlinRules } from './kotlin/index.js';
 
 export interface RegisteredRule extends Rule {}
 
@@ -15,6 +19,10 @@ const registry: RegisteredRule[] = [
   ...Object.values(databaseRules),
   ...Object.values(cicdRules),
   ...Object.values(observabilityRules),
+  ...Object.values(rustRules),
+  ...Object.values(rubyRules),
+  ...Object.values(phpRules),
+  ...Object.values(kotlinRules),
 ];
 
 export function getAllRules(): readonly RegisteredRule[] {
@@ -31,4 +39,8 @@ export function getRulesForLanguage(language: Language): readonly RegisteredRule
 
 export function getRulesByLayer(layer: RegisteredRule['layer']): readonly RegisteredRule[] {
   return registry.filter((r) => r.layer === layer);
+}
+
+export function getRulesByLanguages(languages: readonly Language[]): readonly RegisteredRule[] {
+  return registry.filter((r) => r.languages.some((l) => languages.includes(l)));
 }

@@ -13,7 +13,11 @@ export type Language =
   | 'typescript'
   | 'python'
   | 'java'
+  | 'kotlin'
   | 'go'
+  | 'rust'
+  | 'ruby'
+  | 'php'
   | 'json'
   | 'yaml'
   | 'toml'
@@ -95,6 +99,14 @@ export interface ScanResult {
   readonly findings: readonly Finding[];
   readonly summary: ScanSummary;
   readonly reportPath?: string;
+  readonly profile?: ProjectProfile;
+}
+
+export interface ProjectProfile {
+  readonly primary: Language;
+  readonly detected: readonly Language[];
+  readonly fileCounts: Readonly<Record<Language, number>>;
+  readonly applicableRules: readonly string[];
 }
 
 export interface ScanSummary {

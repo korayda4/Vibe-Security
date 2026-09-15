@@ -190,6 +190,9 @@ let displayFindings = result.findings;
       }
 
       const summary = formatSummary({ ...result, findings: displayFindings });
+      const profileSection = result.profile
+        ? `\n## Project Profile\n\n- **Primary language:** \`${result.profile.primary}\`\n- **Languages detected:** ${result.profile.detected.map((l) => `\`${l}\``).join(', ')}\n- **Applicable rules:** ${result.profile.applicableRules.length}\n`
+        : '';
       const topFindings = displayFindings
         .slice()
         .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))

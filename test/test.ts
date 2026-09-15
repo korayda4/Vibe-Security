@@ -15,6 +15,7 @@ import { getAllRules, getRuleById, getRulesForLanguage } from '../src/engine/rul
 import { toSarif, toJunit, toCompactMarkdown, formatOutput } from '../src/engine/output.js';
 import { applyFixes, applyPatch } from '../src/engine/fixer.js';
 import { findingFingerprint, diffAgainstBaseline, writeBaseline, readBaseline } from '../src/engine/baseline.js';
+import { detectLanguage, buildProjectProfile } from '../src/engine/language.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -24,11 +25,10 @@ const FIXTURE_DIR = path.resolve(__dirname, 'fixtures/vulnerable-app');
 
 test('rule registry loads all rules', () => {
   const rules = getAllRules();
-  assert.ok(rules.length >= 25, `expected >= 25 rules, got ${rules.length}`);
+  assert.ok(rules.length >= 35, `expected >= 35 rules, got ${rules.length}`);
 
   const ids = new Set(rules.map((r) => r.id));
-  // Sanity: critical/high rules + yeni token kurallari
-  for (const id of ['FE-001', 'FE-003', 'BE-002', 'BE-003', 'BE-004', 'CI-002', 'BE-008', 'BE-009']) {
+  for (const id of ['FE-001', 'FE-003', 'BE-002', 'BE-003', 'BE-004', 'CI-002', 'BE-008', 'BE-009', 'RS-002', 'RB-001', 'PHP-001', 'KT-001']) {
     assert.ok(ids.has(id), `missing critical rule ${id}`);
   }
 });
@@ -37,10 +37,50 @@ test('rules are categorized by language', () => {
   const jsRules = getRulesForLanguage('javascript');
   const pyRules = getRulesForLanguage('python');
   const goRules = getRulesForLanguage('go');
+  const rustRules = getRulesForLanguage('rust');
+  const rubyRules = getRulesForLanguage('ruby');
+  const phpRules = getRulesForLanguage('php');
+  const kotlinRules = getRulesForLanguage('kotlin');
 
   assert.ok(jsRules.length > 0);
   assert.ok(pyRules.length > 0);
   assert.ok(goRules.length > 0);
+  assert.ok(rustRules.length > 0, 'should have Rust rules');
+  assert.ok(rubyRules.length > 0, 'should have Ruby rules');
+  assert.ok(phpRules.length > 0, 'should have PHP rules');
+  assert.ok(kotlinRules.length > 0, 'should have Kotlin rules');
+});
+
+test('language detector: extension + shebang + syntax', () => {
+  assert.equal(detectLanguage('foo.ts'), 'typescript');
+  assert.equal(detectLanguage('foo.rs'), 'rust');
+  assert.equal(detectLanguage('foo.rb'), 'ruby');
+  assert.equal(detectLanguage('foo.kt'), 'kotlin');
+
+  const pythonShebang = detectLanguage('script', '#!/usr/bin/env python3\nprint("hi")\n');
+  assert.equal(pythonShebang, 'python');
+
+  const rubyShebang = detectLanguage('script', '#!/usr/bin/env ruby\nputs "hi"\n');
+  assert.equal(rubyShebang, 'ruby');
+
+  const contentSniff = detectLanguage('mystery', 'def foo():\n    pass\n');
+  assert.equal(contentSniff, 'python');
+
+  const rustSniff = detectLanguage('mystery', 'fn main() {\n    let x = 1;\n}\n');
+  assert.equal(rustSniff, 'rust');
+});
+
+test('project profile: primary language and applicable rules', async () => {
+  const result = await scan({ rootDir: FIXTURE_DIR });
+  assert.ok(result.profile, 'should include project profile');
+  assert.ok(['typescript', 'javascript', 'go', 'python'].includes(result.profile!.primary));
+  assert.ok(result.profile!.detected.length > 0);
+  assert.ok(result.profile!.applicableRules.length > 0);
+
+  const all = getAllRules().map((r) => r.id);
+  for (const ruleId of result.profile!.applicableRules) {
+    assert.ok(all.includes(ruleId), `${ruleId} should exist`);
+  }
 });
 
 test('getRuleById returns rule details', () => {

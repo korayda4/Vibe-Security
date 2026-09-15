@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { detectLanguage } from './language.js';
+import { detectLanguage, buildProjectProfile } from './language.js';
 import { walkProject, type WalkedFile } from './walker.js';
 import { getRulesForLanguage, type RegisteredRule } from './rules/index.js';
 import type {
@@ -13,10 +13,9 @@ import type {
 } from '../types.js';
 import { loadConfig, applyConfig, type AiSecurityConfig } from './config.js';
 
-const ALL_SEVERITIES: readonly Severity[] = ['critical', 'high', 'medium', 'low', 'info'];
 const ALL_LAYERS: readonly Layer[] = ['frontend', 'backend', 'network', 'database', 'cicd', 'observability'];
-const GLOBAL_FINDING_CAP = 5000;
 const PER_FILE_FINDING_CAP = 50;
+const GLOBAL_FINDING_CAP = 5000;
 
 export async function scan(options: ScanOptions): Promise<ScanResult> {
   const startedAt = new Date();
@@ -46,10 +45,23 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
 
   const rulesEvaluated = new Set<string>();
   const findings: Finding[] = [];
+  const detectedLanguages = new Set<Language>();
+  const applicableRules = new Set<string>();
   const maxPerFile = options.maxMatchesPerFile ?? PER_FILE_FINDING_CAP;
+  const sourcesForProfile: Array<{ relativePath: string; source?: string }> = [];
 
   for (const file of files) {
-    const language = detectLanguage(file.relativePath);
+    let source: string;
+    try {
+      source = await fs.readFile(file.absolutePath, 'utf8');
+    } catch {
+      source = '';
+    }
+
+    const language = detectLanguage(file.relativePath, source);
+    sourcesForProfile.push({ relativePath: file.relativePath, source });
+    if (language !== 'unknown') detectedLanguages.add(language);
+
     const candidates = getRulesForLanguage(language);
     const applicable = candidates.filter((r) => {
       if (disabledRuleIds.has(r.id)) return false;
@@ -62,17 +74,11 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
 
     if (applicable.length === 0) continue;
 
-    let source: string;
-    let lines: string[];
-    try {
-      source = await fs.readFile(file.absolutePath, 'utf8');
-    } catch {
-      continue;
-    }
-    lines = source.split(/\r?\n/);
+    const lines = source.split(/\r?\n/);
 
     for (const rule of applicable) {
       rulesEvaluated.add(rule.id);
+      applicableRules.add(rule.id);
 
       let ruleFindings: readonly Finding[];
       try {
@@ -100,6 +106,11 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
 
   const finishedAt = new Date();
   const summary = summarize(findings);
+  const profileBase = buildProjectProfile(sourcesForProfile);
+  const profile = {
+    ...profileBase,
+    applicableRules: Array.from(applicableRules).sort(),
+  };
 
   return {
     rootDir,
@@ -110,6 +121,7 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
     rulesEvaluated: rulesEvaluated.size,
     findings: findings.slice(0, GLOBAL_FINDING_CAP),
     summary,
+    profile,
   };
 }
 
