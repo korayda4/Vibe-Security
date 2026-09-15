@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { Layer, Severity } from '../types.js';
+import type { Language, Layer, Severity } from '../types.js';
 
 export interface AiSecurityConfig {
   readonly rules?: Record<string, { enabled?: boolean; severity?: Severity }>;
@@ -12,6 +12,7 @@ export interface AiSecurityConfig {
   readonly baseline?: string;
   readonly autoFix?: boolean;
   readonly layers?: readonly Layer[];
+  readonly languages?: readonly Language[];
 }
 
 const DEFAULT_CONFIG: AiSecurityConfig = {};
@@ -43,19 +44,31 @@ export function mergeConfig(base: AiSecurityConfig, override: AiSecurityConfig):
     baseline: override.baseline ?? base.baseline,
     autoFix: override.autoFix ?? base.autoFix,
     layers: override.layers ?? base.layers,
+    languages: override.languages ?? base.languages,
   };
 }
 
 export function applyConfig(
   config: AiSecurityConfig,
-  scanOptions: { layers?: readonly Layer[]; ignore?: readonly string[]; ruleIds?: readonly string[] }
-): { layers?: readonly Layer[]; ignore: readonly string[]; ruleIds?: readonly string[] } {
+  scanOptions: {
+    layers?: readonly Layer[];
+    languages?: readonly Language[];
+    ignore?: readonly string[];
+    ruleIds?: readonly string[];
+  }
+): {
+  layers?: readonly Layer[];
+  languages?: readonly Language[];
+  ignore: readonly string[];
+  ruleIds?: readonly string[];
+} {
   const disabledRuleIds = Object.entries(config.rules ?? {})
     .filter(([, v]) => v.enabled === false)
     .map(([k]) => k);
 
   return {
     layers: config.layers ?? scanOptions.layers,
+    languages: config.languages ?? scanOptions.languages,
     ignore: [...(scanOptions.ignore ?? []), ...(config.ignore ?? [])],
     ruleIds: [...(scanOptions.ruleIds ?? []), ...disabledRuleIds],
   };

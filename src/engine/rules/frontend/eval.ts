@@ -7,13 +7,13 @@ const rule: Rule = {
   layer: 'frontend',
   severity: 'high',
   description:
-    '`eval()`, `new Function()`, `setTimeout(string, ...)` veya `setInterval(string, ...)` ile dinamik kod calistirmak, kullanici girdisi kontrolsuzce yurutulurse RCE veya XSS ile sonuclanabilir.',
+    'Executing dynamic code via `eval()`, `new Function()`, `setTimeout(string, ...)`, or `setInterval(string, ...)` can lead to RCE or XSS when the input is not strictly controlled.',
   threat: 'Remote code execution, XSS, injection chain',
   remediation:
-    'Dinamik koda ihtiyac varsa JSON.parse veya guvenli bir DSL parser kullanin. ' +
-    '`eval`, `Function` constructor\'dan tamamen kacinin. ' +
-    '`setTimeout` / `setInterval`\'a her zaman fonksiyon referansi verin, string vermeyin. ' +
-    'CSP header\'larinda `unsafe-eval` eklemeyin.',
+    'If you need dynamic behavior, prefer `JSON.parse` or a safe DSL parser. ' +
+    'Avoid `eval` and the `Function` constructor entirely. ' +
+    'Always pass function references (not strings) to `setTimeout` / `setInterval`. ' +
+    'Do NOT enable `unsafe-eval` in your CSP header.',
   references: [
     'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval#never_use_eval!',
     'https://owasp.org/www-community/attacks/Code_Injection',

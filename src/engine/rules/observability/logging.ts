@@ -7,7 +7,7 @@ const rule: Rule = {
   layer: 'observability',
   severity: 'medium',
   description:
-    'Log\'a parola, kart numarasi, token, session cookie veya kullanici kimlik bilgisi basilmasi, log toplayici sizintisinda GDPR/KVKK ihlali olusturur. Stack trace\'in production response\'una donmesi bilgi ifshasidir.',
+    'Log\'a parola, kart numarasi, token, session cookie veya user kimlik bilgisi basilmasi, log toplayici sizintisinda GDPR/KVKK ihlali olusturur. Stack trace\'in production response\'una donmesi bilgi ifshasidir.',
   threat: 'PII leakage via logs, information disclosure via error responses, compliance violation',
   remediation:
     '1) Production response\'larinda ASLA stack trace / `error.stack` / ic detay donmeyin. Generic 500 + correlation id. ' +

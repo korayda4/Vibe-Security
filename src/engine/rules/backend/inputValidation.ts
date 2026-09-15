@@ -7,14 +7,14 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'high',
   description:
-    '`req.body` veya `request.json()`\'i dogrudan ORM\'a vermek (prisma.user.create({ data: req.body })) mass assignment saldirisina aciktir. Saldirgan `role: "admin"`, `isAdmin: true`, `balance: 99999` gibi alanlari enjekte edebilir.',
+    'Passing `req.body` or `request.json()` directly to the ORM (e.g. `prisma.user.create({ data: req.body })`) is open to mass-assignment attacks. Attackers can inject fields such as `role: "admin"`, `isAdmin: true`, or `balance: 99999`.',
   threat: 'Privilege escalation, data tampering, business logic bypass',
   remediation:
-    '1) **Zod / Joi / class-validator** ile explicit DTO semasi tanimlayin. ' +
-    '2) Schema\'da olmayan alanlari `.strict()` ile reddedin. ' +
-    '3) Sadece schema\'da tanimli alanlari ORM\'a gecirin: `prisma.user.create({ data: parsed.data })`. ' +
-    '4) `Object.assign(user, req.body)` veya spread `{...req.body, ...overrides}` yapilarindan kacinin. ' +
-    '5) Default olarak tum update endpointleri "PUT yerine PATCH" ile alan-bazli olmali.',
+    '1) Define an explicit DTO schema with **Zod / Joi / class-validator**. ' +
+    '2) Reject any field not in the schema via `.strict()`. ' +
+    '3) Pass only the validated fields to the ORM: `prisma.user.create({ data: parsed.data })`. ' +
+    '4) Avoid patterns like `Object.assign(user, req.body)` or spreads `{...req.body, ...overrides}`. ' +
+    '5) Update endpoints should default to PATCH (per-field) instead of PUT (full replace).',
   references: [
     'https://cheatsheetseries.owasp.org/cheatsheets/Mass_Assignment_Cheat_Sheet.html',
     'https://zod.dev/',

@@ -7,14 +7,15 @@ const rule: Rule = {
   layer: 'frontend',
   severity: 'medium',
   description:
-    'HTTP response\'unda `X-Frame-Options` veya `Content-Security-Policy: frame-ancestors` direktifi yoksa sayfa saldirgan kontrolundeki bir iframe icinde acilabilir. UI Redressing (clickjacking) ile kullanici istemedigi islemleri yaptirilabilir.',
-  threat: 'UI redressing, clickjacking → unauthorized clicks (payment, settings change)',
+    'When an HTTP response lacks the `X-Frame-Options` header or the `Content-Security-Policy: frame-ancestors` directive, the page can be rendered inside an attacker-controlled iframe. UI redressing (clickjacking) can then trick users into performing unintended actions.',
+  threat: 'UI redressing, clickjacking -- unauthorized clicks (payment, settings change)',
   remediation:
-    'Tum HTML response\'larina sunlardan birini ekleyin: ' +
-    '`Content-Security-Policy: frame-ancestors \'none\'` (en guclu, modern), veya ' +
-    '`X-Frame-Options: DENY` (eski browser destegi). ' +
-    'Sadece kendi origin\'inizden iframe kabul edecekseniz: `frame-ancestors \'self\'`. ' +
-    'Next.js: middleware veya `next.config.js` headers\'tan ayarlayin. Nginx: `add_header X-Frame-Options "DENY" always;`.',
+    'Add one of the following to every HTML response: ' +
+    '`Content-Security-Policy: frame-ancestors \'none\'` (strongest, modern), or ' +
+    '`X-Frame-Options: DENY` (for legacy browser support). ' +
+    'If you only need to be framed by your own origin, use `frame-ancestors \'self\'`. ' +
+    'Next.js: configure via middleware or the `headers` function in `next.config.js`. ' +
+    'Nginx: `add_header X-Frame-Options "DENY" always;`.',
   references: [
     'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options',
     'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors',

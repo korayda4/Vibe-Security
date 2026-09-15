@@ -7,16 +7,16 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'medium',
   description:
-    'Login, signup, password reset, OTP dogrulama gibi endpointlerde rate limiting yoksa brute-force, credential stuffing ve DoS kolaylastirilir.',
+    'Without rate limiting on endpoints such as login, signup, password reset, or OTP verification, brute-force, credential stuffing, and denial-of-service become trivial.',
   threat: 'Brute force, credential stuffing, OTP enumeration, denial of service, scraping',
   remediation:
-    '1) **express-rate-limit**, **rate-limiter-flexible**, **slowapi** (Python) kullanin. ' +
-    '2) IP bazli + user/token bazli iki katman uygulayin. ' +
-    '3) Login endpointleri icin 5 deneme / 15 dakika cap\'i koyun. ' +
-    '4) Exponential backoff ile basarisiz denemeleri yavaslatin. ' +
-    '5) 5 basarisiz denemede account\'u gecici kilitleyin + kullaniciya bildirim gonderin. ' +
-    '6) Captcha veya Turnstile ekleyin. ' +
-    '7) Edge seviyesinde (Cloudflare, API Gateway) global limit ekleyin.',
+    '1) Use **express-rate-limit**, **rate-limiter-flexible**, or **slowapi** (Python). ' +
+    '2) Apply two layers: IP-based AND user/token-based. ' +
+    '3) For login endpoints, cap at ~5 attempts per 15 minutes per IP+user. ' +
+    '4) Slow failed attempts with exponential backoff. ' +
+    '5) After 5 failures, temporarily lock the account and notify the user. ' +
+    '6) Add CAPTCHA or Turnstile on sensitive flows. ' +
+    '7) Apply a global rate limit at the edge (Cloudflare, API Gateway).',
   references: [
     'https://owasp.org/www-community/controls/Blocking_Brute_Force_Attacks',
     'https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#login-throttling',

@@ -7,15 +7,15 @@ const rule: Rule = {
   layer: 'cicd',
   severity: 'medium',
   description:
-    'Lockfile (package-lock.json / yarn.lock / poetry.lock / go.sum) eksikse bagimlilik versiyonlari tekrarlanamaz sekilde cozumlenir (tedarik zinciri riski). Audit script\'i yoksa CVE\'ler sessizce slider.',
+    'When a lockfile (package-lock.json / yarn.lock / poetry.lock / go.sum) is missing, dependency versions resolve non-deterministically (supply-chain risk). Without an audit script, known CVEs slip in silently.',
   threat: 'Software supply chain attack, dependency confusion, known CVE exploitation',
   remediation:
-    '1) Lockfile\'i her zaman commit\'leyin ve `.gitignore`\'a ALMAYIN. ' +
-    '2) CI\'da `npm audit --audit-level=high`, `pip-audit`, `govulncheck`, `snyk test`, `dependabot` calistirin. ' +
-    '3) Container imajlarinda minimal taban (`distroless`, `alpine`) ve **non-root** user kullanin. ' +
-    '4) `npm ci` ile build yapin (lockfile\'a zorlar). ' +
-    '5) Renovate / Dependabot ile guvenlik PR\'leri otomatik acilsin. ' +
-    '6) `package.json` `scripts.audit` tanimlayin.',
+    '1) Always commit the lockfile -- do NOT add it to `.gitignore`. ' +
+    '2) In CI, run `npm audit --audit-level=high`, `pip-audit`, `govulncheck`, `snyk test`, or `dependabot`. ' +
+    '3) Use minimal container bases (`distroless`, `alpine`) and a **non-root** user. ' +
+    '4) Build with `npm ci` (forces the lockfile). ' +
+    '5) Configure Renovate / Dependabot to open security PRs automatically. ' +
+    '6) Define an `audit` script in `package.json`.',
   references: [
     'https://docs.npmjs.com/cli/v10/commands/npm-audit',
     'https://github.com/pypa/pip-audit',

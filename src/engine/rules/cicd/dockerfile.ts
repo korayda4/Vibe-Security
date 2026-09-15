@@ -7,15 +7,15 @@ const rule: Rule = {
   layer: 'cicd',
   severity: 'medium',
   description:
-    'Dockerfile\'da `USER` belirtilmemisse konteyner root olarak calisir; `latest` tag tekrarlanamaz; `ADD` URL\'den dosya cekmek MITM\'e aciktir.',
+    'If a Dockerfile does not declare a `USER` directive, the container runs as root. The `latest` tag makes builds non-reproducible, and `ADD`ing from a URL exposes the build to MITM attacks.',
   threat: 'Container escape, root privilege escalation, unpredictable builds, supply chain',
   remediation:
-    '1) `FROM <image>:<pinned-version>` kullanin (digest\'e pinleyin: `@sha256:...`). ' +
-    '2) `USER nonroot:nonroot` veya specific UID ile calistirin. ' +
-    '3) `COPY` kullanin; sadece gerekli dosyalari kopyalayin. `ADD <url>` kullanmayin (curl/wget ile indirip checksum dogrulayin). ' +
-    '4) Multi-stage build ile build tool\'lari final imaja sokmayin. ' +
-    '5) Minimal taban (`gcr.io/distroless/*`, `alpine`) kullanin. ' +
-    '6) `.dockerignore` ile secret / node_modules / .git\'i disarida birakin.',
+    '1) Use `FROM <image>:<pinned-version>` (pin by digest: `@sha256:...`). ' +
+    '2) Run as `USER nonroot:nonroot` or with a specific UID. ' +
+    '3) Use `COPY` and copy only what you need; never `ADD <url>` (download with curl/wget and verify the checksum instead). ' +
+    '4) Use multi-stage builds so build tools never reach the final image. ' +
+    '5) Use minimal bases (`gcr.io/distroless/*`, `alpine`). ' +
+    '6) Use `.dockerignore` to keep secrets, `node_modules`, and `.git` out of the build context.',
   references: [
     'https://docs.docker.com/develop/dev-best-practices/',
     'https://snyk.io/learn/docker-security/',

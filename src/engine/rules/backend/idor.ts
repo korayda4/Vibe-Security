@@ -7,15 +7,15 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'high',
   description:
-    '`GET /api/resource/:id`, `app.get(\'/users/:id\')` gibi endpoint\'lerde, ID\'nin varligi kontrol edilse bile o kaynagin gercek sahibinin istegi yapan kullanici olup olmadigi sorgulanmiyor. Saldirgan baska kullanicilarin verilerine erisebilir (BOLA — Broken Object Level Authorization, OWASP API #1).',
-  threat: 'Unauthorized data access → account takeover, data breach, privacy violation',
+    'On endpoints like `GET /api/resource/:id` or `app.get(\'/users/:id\')`, even when the ID\'s existence is checked, the code never verifies that the requesting user is the actual owner of that resource. Attackers can therefore access other users\' data (BOLA -- Broken Object Level Authorization, OWASP API #1).',
+  threat: 'Unauthorized data access -- account takeover, data breach, privacy violation',
   remediation:
-    'Her resource erisiminden once sunucu tarafinda suni sorgu ekleyin: ' +
+    'Before returning any resource, add an ownership check on the server side: ' +
     '`await db.resource.findFirst({ where: { id, ownerId: session.userId } })`. ' +
-    'Ya da policy tabanli bir authz katmani kullanin (CASL, Oso, cerbos). ' +
-    'Sadece `findUnique({ where: { id } })` ile cekmek YETERSIZ. ' +
-    'Listeleme endpoint\'lerinde `where` filtresine her zaman `ownerId` ekleyin. ' +
-    'Audit log ile anomalileri izleyin.',
+    'Or use a policy-based authorization layer (CASL, Oso, Cerbos). ' +
+    'Fetching with only `findUnique({ where: { id } })` is INSUFFICIENT. ' +
+    'Always include `ownerId` in the `where` filter of list endpoints. ' +
+    'Monitor anomalies via audit logs.',
   references: [
     'https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/',
     'https://owasp.org/www-project-api-security/',

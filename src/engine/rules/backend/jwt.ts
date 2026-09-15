@@ -7,15 +7,15 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'critical',
   description:
-    'JWT token uretimi veya dogrulamasi yapilirken `alg: none`, zayif HMAC secret, hardcoded secret veya `verify` atlama gibi hatalar yapildiginda saldirgan imzayi atlayip kendi token\'ini uretebilir.',
-  threat: 'Authentication bypass → full account takeover',
+    'When JWT tokens are issued or verified with mistakes such as `alg: none`, a weak HMAC secret, a hardcoded secret, or skipped verification, attackers can bypass the signature and forge their own tokens.',
+  threat: 'Authentication bypass -- full account takeover',
   remediation:
-    '1) **Asla `alg: none`** kullanmayin; her zaman explicit `algorithms: [\'RS256\']` veya `[\'HS256\']` whitelist edin. ' +
-    '2) HMAC secret\'i en az 256-bit (32 byte) random uretin, **asla** commit\'lemeyin. Asimetrik (RS256/ES256) tercih edin. ' +
-    '3) `jwt.verify()` her zaman cagirin, payload\'i dogrudan kabul etmeyin. ' +
-    '4) `exp`, `iss`, `aud` claim\'lerini dogrulayin. ' +
-    '5) Access token\'i 15 dakika ile sinirlayin, refresh token icin rotation + revocation store kullanin. ' +
-    '6) `Authorization: Bearer` basligini okuyun, query string\'de token tasimalarini reddedin.',
+    '1) **Never use `alg: none`**; always whitelist an explicit `algorithms: [\'RS256\']` or `[\'HS256\']`. ' +
+    '2) Generate HMAC secrets with at least 256 bits (32 bytes) of randomness and **never** commit them. Prefer asymmetric algorithms (RS256/ES256). ' +
+    '3) Always call `jwt.verify()`; never trust a decoded payload directly. ' +
+    '4) Validate the `exp`, `iss`, and `aud` claims. ' +
+    '5) Limit access tokens to ~15 minutes; use rotation + a revocation store for refresh tokens. ' +
+    '6) Read tokens from the `Authorization: Bearer` header; reject tokens passed via query string.',
   references: [
     'https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html',
     'https://datatracker.ietf.org/doc/html/rfc8725',

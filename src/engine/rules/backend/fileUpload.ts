@@ -7,17 +7,17 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'high',
   description:
-    'Dosya yuklemesinde sadece `Content-Type` veya extension kontrol edilip sunucuda orijinal isimle saklanirsa, saldirgan `.php`, `.jsp`, `.aspx` veya web-accessible dizine script yukleyebilir (RCE).',
+    'If file uploads only validate `Content-Type` or extension and then store the file on the server under its original name, an attacker can upload `.php`, `.jsp`, `.aspx`, or any web-accessible script (RCE).',
   threat: 'Remote code execution, XSS via SVG, web-shell upload',
   remediation:
-    '1) **Magic bytes** ile gercek MIME tespit edin (`file-type` paketi, `python-magic`, vb.). ' +
-    '2) Sadece izinli extension + MIME whitelist kabul edin (jpg, png, pdf, vb.). ' +
-    '3) Dosyayi **UUID** ile yeniden adlandirin (orijinal ismi KULLANMAYIN). ' +
-    '4) Sunucudan BAGIMSIZ depolama kullanin (S3, GCS, R2). Web root\'a yazmayin. ' +
-    '5) Boyut limiti koyun (multipart maxFileSize). ' +
-    '6) Antivirus / ClamAV ile tarayin. ' +
-    '7) Content-Disposition: attachment ile zorla indirme sunun. ' +
-    '8) SVG ve HTML\'i reddedin (XSS vektoru).',
+    '1) Detect the real MIME via **magic bytes** (e.g. `file-type` package, `python-magic`). ' +
+    '2) Allow only an explicit extension + MIME whitelist (jpg, png, pdf, etc.). ' +
+    '3) Rename the file with a **UUID** (do NOT keep the original name). ' +
+    '4) Store OUTSIDE the web root (S3, GCS, R2). Never write to a publicly served directory. ' +
+    '5) Enforce a size limit (multipart maxFileSize). ' +
+    '6) Scan with antivirus / ClamAV. ' +
+    '7) Force `Content-Disposition: attachment` for downloads. ' +
+    '8) Reject SVG and HTML (XSS vectors).',
   references: [
     'https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload',
     'https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html',

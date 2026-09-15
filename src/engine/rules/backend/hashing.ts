@@ -7,14 +7,14 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'critical',
   description:
-    'Parolalar MD5, SHA1, SHA256 veya duz metin olarak saklandiginda, veritabani sizintisinda aninda kirilabilir. Modern GPU\'lar MD5\'i saniyede milyarlarca kez deneyebilir.',
+    'Passwords stored as MD5, SHA1, SHA256, or plain text are trivially cracked the moment a database leaks. Modern GPUs can try billions of MD5 hashes per second.',
   threat: 'Mass credential disclosure, credential stuffing on other services',
   remediation:
-    'Parolalari **Argon2id** veya **bcrypt (work factor >= 12)** ile hashleyin. ' +
-    'Her kullanici icin unique salt (Argon2/bcrypt otomatik ekler). ' +
-    'Login sirasinda constant-time comparison kullanin. ' +
-    'Yeni uyelikte minimum 12 karakter sifre zorunlulugu + zayif sifre listesi (HIBP). ' +
-    'MFA\'yi yayginlastirin. Mevcut legacy hashleri acil olarak yeniden hashleyin.',
+    'Hash passwords with **Argon2id** or **bcrypt (work factor >= 12)**. ' +
+    'Use a unique salt per user (Argon2/bcrypt handles this automatically). ' +
+    'Use constant-time comparison when verifying logins. ' +
+    'Require minimum 12-character passwords + check against a breached-password list (e.g. HIBP) on signup. ' +
+    'Roll out MFA broadly. Re-hash any legacy hashes immediately.',
   references: [
     'https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html',
     'https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md',

@@ -16,6 +16,7 @@ import { toSarif, toJunit, toCompactMarkdown, formatOutput } from '../src/engine
 import { applyFixes, applyPatch } from '../src/engine/fixer.js';
 import { findingFingerprint, diffAgainstBaseline, writeBaseline, readBaseline } from '../src/engine/baseline.js';
 import { detectLanguage, buildProjectProfile } from '../src/engine/language.js';
+import { redactSensitiveValues } from '../src/engine/rules/_helpers.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -217,6 +218,26 @@ test('rule id filtering works', async () => {
     onlySql.findings.every((f) => f.ruleId === 'BE-004'),
     'should only have BE-004 findings'
   );
+});
+
+test('language filtering limits scanned findings', async () => {
+  const pythonOnly = await scan({ rootDir: FIXTURE_DIR, languages: ['python'] });
+  assert.ok(pythonOnly.findings.length > 0, 'should find Python vulnerabilities');
+  assert.ok(
+    pythonOnly.findings.every(
+      (finding) => finding.file.endsWith('.py') || finding.file.endsWith('deploy.sh')
+    ),
+    'language filter should exclude findings from other files'
+  );
+});
+
+test('finding snippets redact token-shaped values', () => {
+  const snippet = redactSensitiveValues(
+    'const token = "super-secret-value";\nAuthorization: Bearer abcdefghijklmnop'
+  );
+  assert.ok(!snippet.includes('super-secret-value'));
+  assert.ok(!snippet.includes('abcdefghijklmnop'));
+  assert.ok(snippet.includes('[REDACTED]'));
 });
 
 test('SARIF output is valid', async () => {

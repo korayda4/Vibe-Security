@@ -14,7 +14,7 @@ import type { Layer, ScanOptions } from './types.js';
 export const server = new Server(
   {
     name: 'vibe-security',
-    version: '0.1.0',
+    version: '1.0.0',
   },
   {
     capabilities: {
@@ -48,25 +48,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             languages: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Belirli dillere kisitla (javascript, python, java, go, vb.)',
+              description: 'Limit the scan to selected languages (for example: javascript, python, java, go)',
             },
             ruleIds: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Sadece belirli kurallari calistir (ornek: ["BE-004", "FE-001"])',
+              description: 'Run only selected rules (for example: ["BE-004", "FE-001"])',
             },
             writeReport: {
               type: 'boolean',
-              description: 'Security.md dosyasi yaz (default: true)',
+              description: 'Write Security.md (default: true)',
               default: true,
             },
             reportPath: {
               type: 'string',
-              description: 'Security.md cikti yolu (default: <rootDir>/Security.md)',
+              description: 'Security.md output path (default: <rootDir>/Security.md)',
             },
             maxMatchesPerFile: {
               type: 'number',
-              description: 'Dosya basina maks. eslesme (default: 50)',
+              description: 'Maximum findings per file (default: 50)',
             },
             ignore: {
               type: 'array',
@@ -112,14 +112,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'list_rules',
         description:
-          'Mevcut tum guvenlik kurallarini listeler. ID, katman, severity, baslik ve dil destegi icerir.',
+          'List all security rules with their ID, layer, severity, title, and supported languages.',
         inputSchema: {
           type: 'object',
           properties: {
             layer: {
               type: 'string',
               enum: ['frontend', 'backend', 'network', 'database', 'cicd', 'observability'],
-              description: 'Belirli bir katmana filtrele',
+              description: 'Filter by layer',
             },
           },
         },
@@ -127,7 +127,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'get_rule_detail',
         description:
-          'Belirli bir kural hakkinda tam detay: aciklama, tehdit, onlem, referanslar, ornek desenler.',
+          'Show full details for a rule, including description, threat, remediation, and references.',
         inputSchema: {
           type: 'object',
           required: ['ruleId'],
@@ -171,7 +171,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<CallToo
       };
 
       const result = await scan(opts);
-let displayFindings = result.findings;
+  let displayFindings = result.findings;
       if (params.baselinePath) {
         const { readBaseline, diffAgainstBaseline } = await import('./engine/baseline.js');
         const baseline = await readBaseline(params.baselinePath);
@@ -197,7 +197,7 @@ let displayFindings = result.findings;
         .slice()
         .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
         .slice(0, 30);
-const fixable = params.includeFixes
+  const fixable = params.includeFixes
         ? displayFindings.filter((f) => f.fix).slice(0, 10)
         : [];
 
@@ -225,7 +225,7 @@ const fixable = params.includeFixes
               .join('\n')
           : '',
         fixable.length > 0
-          ? `\nKullanici isterse \`vibe-security scan . --fix --dry-run\` ile uygulayabilir.`
+          ? `\nUser can apply via \`vibe-security scan . --fix --dry-run\`.`
           : '',
       ]
         .filter(Boolean)
@@ -385,7 +385,7 @@ function severityRank(s: string): number {
 function formatSummary(result: { findings: readonly { severity: string }[]; summary: { totalFindings: number; bySeverity: Record<string, number>; byLayer: Record<string, number> }; filesScanned: number; rulesEvaluated: number; durationMs: number }): string {
   const { bySeverity, byLayer } = result.summary;
   const lines: string[] = [];
-  lines.push(`# ğŸ›¡ï¸ Vibe Security Scan Complete`);
+  lines.push(`# Vibe Security Scan Complete`);
   lines.push('');
   lines.push(`- **Total findings:** ${result.summary.totalFindings}`);
   lines.push(`- **Files scanned:** ${result.filesScanned}`);
@@ -412,7 +412,7 @@ function formatSummary(result: { findings: readonly { severity: string }[]; summ
 
 function errorResult(message: string): CallToolResult {
   return {
-    content: [{ type: 'text', text: `âŒ ${message}` }],
+    content: [{ type: 'text', text: `Error: ${message}` }],
     isError: true,
   };
 }

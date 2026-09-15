@@ -24,6 +24,7 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
   const config = await loadConfig(rootDir);
   const effective = applyConfig(config, {
     layers: options.layers,
+    languages: options.languages,
     ignore: options.ignore,
     ruleIds: options.ruleIds,
   });
@@ -46,7 +47,6 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
 
   const rulesEvaluated = new Set<string>();
   const findings: Finding[] = [];
-  const detectedLanguages = new Set<Language>();
   const applicableRules = new Set<string>();
   const maxPerFile = options.maxMatchesPerFile ?? PER_FILE_FINDING_CAP;
   const sourcesForProfile: Array<{ relativePath: string; source?: string }> = [];
@@ -61,7 +61,9 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
 
     const language = detectLanguage(file.relativePath, source);
     sourcesForProfile.push({ relativePath: file.relativePath, source });
-    if (language !== 'unknown') detectedLanguages.add(language);
+    if (effective.languages && !effective.languages.includes(language)) {
+      continue;
+    }
 
     const candidates = getRulesForLanguage(language);
     const applicable = candidates.filter((r) => {
@@ -77,6 +79,7 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
 
     const lines = source.split(/\r?\n/);
 
+    let fileFindingCount = 0;
     for (const rule of applicable) {
       rulesEvaluated.add(rule.id);
       applicableRules.add(rule.id);
@@ -95,13 +98,15 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
       }
 
       for (let finding of ruleFindings) {
-        if (findings.length >= maxPerFile * 100) break;
+        if (fileFindingCount >= maxPerFile || findings.length >= GLOBAL_FINDING_CAP) break;
         const override = severityOverrides.get(finding.ruleId);
         if (override) {
           finding = { ...finding, severity: override };
         }
         findings.push(finding);
+        fileFindingCount++;
       }
+      if (fileFindingCount >= maxPerFile || findings.length >= GLOBAL_FINDING_CAP) break;
     }
   }
 

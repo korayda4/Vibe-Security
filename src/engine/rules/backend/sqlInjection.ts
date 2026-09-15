@@ -7,16 +7,16 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'critical',
   description:
-    'SQL sorgulari veya NoSQL filtreleri string concatenation / template literals ile olusturuldugunda, kullanici girdisi sorgu yapisina enjekte edilebilir. ' +
-    'Senaryolar: `query: "SELECT * FROM users WHERE id = " + req.params.id` veya `db.users.find({ $where: req.body.filter })` gibi.',
+    'When SQL queries or NoSQL filters are built via string concatenation or template literals, user input can be injected into the query structure. ' +
+    'Examples: `query: "SELECT * FROM users WHERE id = " + req.params.id` or `db.users.find({ $where: req.body.filter })`.',
   threat: 'Data breach, authentication bypass, remote code execution (DB-specific), full DB compromise',
   remediation:
-    '1) **Parametrik sorgular** / prepared statements kullanin: `db.query(\'SELECT * FROM users WHERE id = $1\', [id])`. ' +
-    '2) ORM (Prisma, TypeORM, Sequelize, SQLAlchemy) otomatik parameterize eder. ' +
-    '3) String concatenation ile SQL asla olusturmayin. ' +
-    '4) NoSQL: `$where`, `$function`, `$regex` gibi operatorlari kullanici girdisinden GEÇMEYIN; explicit whitelist kullanin. ' +
-    '5) Stored procedure kullaniyorsaniz bile icindeki SQL\'i dinamik olusturmayin. ' +
-    '6) Tum user input\'u once validate edin (Zod, Joi, class-validator).',
+    '1) Use **parameterized queries** / prepared statements: `db.query(\'SELECT * FROM users WHERE id = $1\', [id])`. ' +
+    '2) ORMs (Prisma, TypeORM, Sequelize, SQLAlchemy) parameterize automatically. ' +
+    '3) Never build SQL via string concatenation. ' +
+    '4) NoSQL: NEVER pass user input to operators like `$where`, `$function`, or `$regex`; use an explicit whitelist. ' +
+    '5) Even when using stored procedures, never build SQL dynamically inside them. ' +
+    '6) Validate all user input first (Zod, Joi, class-validator).',
   references: [
     'https://owasp.org/www-community/attacks/SQL_Injection',
     'https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html',

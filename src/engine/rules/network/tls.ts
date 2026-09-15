@@ -13,9 +13,9 @@ const rule: Rule = {
     '1) TLS 1.2+ zorunlu tutun; TLS 1.0/1.1\'i devre disi birakin. ' +
     '2) `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`. ' +
     '3) Nginx: `ssl_protocols TLSv1.2 TLSv1.3;`. ' +
-    '4) Tum HTTP isteklerini 301 ile HTTPS\'e yonlendirin. ' +
-    '5) Sertifika otomasyonu icin Let\'s Encrypt + certbot veya cloud provider ACM kullanin. ' +
-    '6) HSTS preload listesi icin basvuru yapin.',
+    '4) Tum HTTP istaddrini 301 ile HTTPS\'e yonlendirin. ' +
+    '5) Sertifika otomasyonu icin Let\'s Encrypt + certbot veya cloud provider ACM use. ' +
+    '6) HSTS preload listesi icin basvuru do.',
   references: [
     'https://wiki.mozilla.org/Security/Server_Side_TLS',
     'https://datatracker.ietf.org/doc/html/rfc6797',

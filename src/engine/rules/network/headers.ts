@@ -10,7 +10,7 @@ const rule: Rule = {
     'HTTP response\'larinda `Content-Security-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy` veya `Permissions-Policy` basliklari yoksa tarayici tabanli saldiri yuzeyi acilir: XSS, MIME sniffing, bilgi sizintisi, yetenek istismari.',
   threat: 'XSS escalation, MIME sniffing, MITM downgrade, information leakage, feature abuse',
   remediation:
-    'Asagidaki header\'lari TUM response\'lara ekleyin: ' +
+    'Asagidaki header\'lari TUM response\'lara addyin: ' +
     '`Content-Security-Policy: default-src \'self\'; script-src \'self\'; object-src \'none\'; base-uri \'self\'` ' +
     '`Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` ' +
     '`X-Content-Type-Options: nosniff` ' +

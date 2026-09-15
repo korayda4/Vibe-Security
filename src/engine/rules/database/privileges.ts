@@ -7,15 +7,15 @@ const rule: Rule = {
   layer: 'database',
   severity: 'high',
   description:
-    'Uygulama DB baglanti kullanicisi DROP, ALTER, GRANT veya superuser yetkilerine sahipse, SQL injection durumunda saldırıgın tum veritabanini silmesi veya sema degistirmesi mumkun.',
+    'When the application DB user holds DROP, ALTER, GRANT, or superuser privileges, a SQL injection lets the attacker wipe or modify the entire database schema.',
   threat: 'Mass data destruction, ransomware-grade attack, full DB compromise',
   remediation:
-    '1) App DB user\'ina SADECE gereken yetkileri verin (SELECT, INSERT, UPDATE, DELETE). ' +
-    '2) DROP, ALTER, GRANT, CREATE yetkilerini vermeyin. ' +
-    '3) Migration\'lar icin ayri bir migration user (CI/CD\'de kullanilan, app\'te OLMAYAN). ' +
+    '1) Grant the app DB user ONLY the privileges it needs (SELECT, INSERT, UPDATE, DELETE). ' +
+    '2) Do NOT grant DROP, ALTER, GRANT, or CREATE. ' +
+    '3) Use a separate migration user (used in CI/CD, NOT in the app runtime). ' +
     '4) Postgres: `ALTER USER app_user NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOREPLICATION`. ' +
-    '5) Read-only endpointler icin ayri read-only user kullanin. ' +
-    '6) Baglanti string\'inde `superuser=yes` veya `root` KULLANMAYIN.',
+    '5) For read-only endpoints, use a dedicated read-only user. ' +
+    '6) Do NOT put `superuser=yes` or `root` in the connection string.',
   references: [
     'https://en.wikipedia.org/wiki/Principle_of_least_privilege',
     'https://www.postgresql.org/docs/current/sql-grant.html',

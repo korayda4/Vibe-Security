@@ -7,15 +7,15 @@ const rule: Rule = {
   layer: 'database',
   severity: 'high',
   description:
-    'TC kimlik, kredi karti, saglik verisi, parolalar gibi PII alanlari duz metin (plain text) ile saklaniyorsa fiziksel veya yedek sizintisinda aninda okunabilir hale gelir.',
+    'PII fields such as national IDs, credit card numbers, health data, or passwords stored as plain text become immediately readable the moment a disk or backup leaks.',
   threat: 'GDPR / KVKK / PCI-DSS violation, identity theft, regulatory fines',
   remediation:
-    '1) In-transit: tum baglantilari **TLS 1.2+** ile sifreleyin. Baglanti string\'inde `sslmode=require` veya `ssl=true`. ' +
-    '2) At-rest: kritik kolonlari uygulama seviyesinde **AES-256-GCM** ile sifreleyin (deterministic olmayan, random IV). ' +
-    '3) Veya TDE / column-level encryption (pgcrypto, AWS RDS encryption, MongoDB CSFLE). ' +
-    '4) KMS / Vault ile key\'leri yonetin, kodda saklamayin. ' +
-    '5) Backup\'lar da sifrelenmis olmali. ' +
-    '6) PCI scope\'a giren veriler icin tokenization (Stripe, Adyen) kullanin, ham PAN\'i ASLA saklamayin.',
+    '1) In transit: encrypt all connections with **TLS 1.2+**. Set `sslmode=require` or `ssl=true` in connection strings. ' +
+    '2) At rest: encrypt sensitive columns at the application layer with **AES-256-GCM** (non-deterministic, random IV). ' +
+    '3) Or use TDE / column-level encryption (pgcrypto, AWS RDS encryption, MongoDB CSFLE). ' +
+    '4) Manage keys via KMS / Vault -- never store keys in code. ' +
+    '5) Backups must also be encrypted. ' +
+    '6) For data in PCI scope, use tokenization (Stripe, Adyen); NEVER store raw PANs.',
   references: [
     'https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html',
     'https://www.postgresql.org/docs/current/encryption-options.html',

@@ -7,17 +7,17 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'high',
   description:
-    'JWT access token\'larinda `expiresIn` claim yoksa veya asiri uzunsa (30 gun+) token sizdirildiginda sonsuza kadar gecerli kalir. Ayni sekilde session cookie maxAge > 24 saat veya "remember me" tarzi kalici oturumlar kontrolsuzse saldırganin eline gecmis token ile yapacagi hasar sinirsiz olur.',
+    'JWT access tokens with no `expiresIn` claim, or with excessively long lifetimes (30+ days), remain valid forever once leaked. The same goes for session cookies with `maxAge > 24h` or uncontrolled "remember me" tokens -- a stolen token can then cause unlimited damage.',
   threat:
-    'Stolen token remains valid indefinitely → no logout, no password reset can revoke access',
+    'Stolen token remains valid indefinitely -- no logout, no password reset can revoke access',
   remediation:
-    '1) **Access token** icin `expiresIn: \'15m\'` veya daha kisa (5m). ' +
-    '2) **Refresh token** icin 7-30 gun + her kullanimda rotation + revocation store (Redis). ' +
-    '3) `jwt.sign()`\'de mutlaka `expiresIn` veya `exp` belirt, default davranisa guvenme. ' +
-    '4) `jwt.verify()`\'de `maxAge` veya explicit `exp` kontrolu yap. ' +
-    '5) `req.session.cookie.maxAge` 24 saatten fazla olmasin. ' +
-    '6) "Remember me" icin ayri, rotation\'lu, revocation\'lu token uret. ' +
-    '7) Tum sizdirilmis token\'lar icin blacklist / revocation list tut.',
+    '1) For **access tokens** use `expiresIn: \'15m\'` or shorter (5m). ' +
+    '2) For **refresh tokens** use 7-30 days + rotation on every use + a revocation store (Redis). ' +
+    '3) Always specify `expiresIn` (or `exp`) in `jwt.sign()` -- never rely on the library default. ' +
+    '4) In `jwt.verify()`, enforce `maxAge` or an explicit `exp` check. ' +
+    '5) Keep `req.session.cookie.maxAge` under 24 hours. ' +
+    '6) For "Remember me", issue a separate token with rotation and revocation. ' +
+    '7) Maintain a blacklist / revocation list for any leaked tokens.',
   references: [
     'https://datatracker.ietf.org/doc/html/rfc8725#section-3.12',
     'https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html#token-expiration',

@@ -7,16 +7,16 @@ const rule: Rule = {
   layer: 'backend',
   severity: 'high',
   description:
-    'Access token, API key, session ID veya baska hassas token URL\'in query string\'inde (`?token=...`) veya path\'inde (`/users/:token/...`) tasindiginda, sunucu access log\'larinda, reverse proxy log\'larinda, browser history\'de, referer header\'inda veya ekran goruntulerinde ifsa olur. Ayni zamanda OWASP API3:2023 (Broken Object Property Level Authorization) ile zincir saldirilara kapilar acar.',
+    'When an access token, API key, session ID, or any other sensitive token is carried in the URL query string (`?token=...`) or path (`/users/:token/...`), it leaks into server access logs, reverse proxy logs, browser history, the Referer header, and screenshots. It also opens the door to chained attacks (e.g. OWASP API3:2023 - Broken Object Property Level Authorization).',
   threat:
-    'Token leakage via logs/history/referer → session hijack, account takeover, lateral movement',
+    'Token leakage via logs/history/referer -- session hijack, account takeover, lateral movement',
   remediation:
-    '1) Token\'i **MUTLAKA Authorization: Bearer** header\'inda tasima (query veya path degil). ' +
-    '2) API key gibi kalici secret\'lari client\'a hic gonderme; server-side proxy kullan. ' +
-    '3) Frontend\'den API\'ye istek atarken `fetch(url, { headers: { Authorization: \'Bearer \' + token } })`. ' +
-    '4) Express middleware: `app.use((req, res, next) => { if (req.query.token) return res.status(400).send(\'token in URL\'); next(); })` — hard reject. ' +
-    '5) Reverse proxy / Nginx log format\'larindan query string\'i cikar. ' +
-    '6) Eger gercekten URL\'de olmasi gerekiyorsa (ornek: download link\'i) one-time, short-TTL signed URL kullan.',
+    '1) ALWAYS send tokens in the **Authorization: Bearer** header (not in the query string or path). ' +
+    '2) Never send long-lived secrets such as API keys to the client; use a server-side proxy instead. ' +
+    '3) When the frontend calls the API, use `fetch(url, { headers: { Authorization: \'Bearer \' + token } })`. ' +
+    '4) Add an Express middleware that hard-rejects tokens in URLs: `app.use((req, res, next) => { if (req.query.token) return res.status(400).send(\'token in URL\'); next(); })`. ' +
+    '5) Strip the query string from reverse proxy / Nginx access log formats. ' +
+    '6) If a token really must appear in a URL (e.g. a download link), use a one-time, short-TTL signed URL.',
   references: [
     'https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/',
     'https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html',

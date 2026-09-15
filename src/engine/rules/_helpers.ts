@@ -28,7 +28,16 @@ export function snippetAt(source: string, line: number, contextLines = 1): strin
   const lines = source.split(/\r?\n/);
   const start = Math.max(0, line - 1 - contextLines);
   const end = Math.min(lines.length, line + contextLines);
-  return lines.slice(start, end).join('\n');
+  return redactSensitiveValues(lines.slice(start, end).join('\n'));
+}
+
+export function redactSensitiveValues(snippet: string): string {
+  return snippet
+    .replace(/(\bBearer\s+)[A-Za-z0-9._~+/=-]{8,}/gi, '$1[REDACTED]')
+    .replace(
+      /(\b(?:api[_-]?key|authorization|password|secret|token)\b\s*[:=]\s*["'`])[^"'`\r\n]+(["'`])/gi,
+      '$1[REDACTED]$2'
+    );
 }
 
 export function makeFinding(

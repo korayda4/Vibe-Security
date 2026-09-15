@@ -7,15 +7,15 @@ const rule: Rule = {
   layer: 'cicd',
   severity: 'critical',
   description:
-    'API key, private key, DB password, OAuth secret, AWS access key gibi hassas degerlerin kaynak kodunda veya .env dosyasinda duz metin bulunmasi, Git reposuna sizmasi demektir.',
+    'Storing sensitive values such as API keys, private keys, DB passwords, OAuth secrets, or AWS access keys in source code or in `.env` files means they leak into the Git repository.',
   threat: 'Cloud takeover, financial fraud, data breach, lateral movement',
   remediation:
-    '1) Tum secret\'lari **Vault / AWS Secrets Manager / GCP Secret Manager / Doppler** ile yonetin. ' +
-    '2) Pre-commit hook olarak **gitleaks** veya **trufflehog** kurun. ' +
-    '3) `.gitignore`\'a `.env`, `.env.local`, `*.pem`, `*.key` ekleyin. ' +
-    '4) `.env.example` sadece anahtar isimlerini icersin, degerler bos olmali. ' +
-    '5) CI ortaminda secret\'lari environment variable olarak inject edin (GitHub Actions secrets, GitLab CI variables). ' +
-    '6) Bir secret commit olduysa HEMEN rotate edin; Git history\'de kalir.',
+    '1) Manage all secrets with **Vault / AWS Secrets Manager / GCP Secret Manager / Doppler**. ' +
+    '2) Install **gitleaks** or **trufflehog** as a pre-commit hook. ' +
+    '3) Add `.env`, `.env.local`, `*.pem`, `*.key` to `.gitignore`. ' +
+    '4) `.env.example` should contain only key names, with empty values. ' +
+    '5) Inject secrets in CI via environment variables (GitHub Actions secrets, GitLab CI variables, etc.). ' +
+    '6) If a secret has been committed, rotate it IMMEDIATELY; it stays in the Git history forever.',
   references: [
     'https://github.com/gitleaks/gitleaks',
     'https://github.com/trufflesecurity/trufflehog',

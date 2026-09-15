@@ -13,7 +13,7 @@ const rule: Rule = {
     '1) Wildcard (`*`) KULLANMAYIN. ' +
     '2) Explicit bir whitelist tanimlayin: `const allowed = [\'https://app.example.com\', \'https://admin.example.com\']`. ' +
     '3) Origin kontrolu yapip eslesiyorsa `Access-Control-Allow-Origin: <specific-origin>` donun. ' +
-    '4) Credentials ile birlikte `*` ASLA calismaz; gerekirse `Access-Control-Allow-Credentials: true` + explicit origin kullanin. ' +
+    '4) Credentials ile birlikte `*` ASLA calismaz; gerekirse `Access-Control-Allow-Credentials: true` + explicit origin use. ' +
     '5) Preflight icin `Access-Control-Allow-Methods` ve `Access-Control-Allow-Headers`\'i da kisitlayin. ' +
     '6) Express: `cors({ origin: allowed, credentials: true })`.',
   references: [

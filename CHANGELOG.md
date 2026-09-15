@@ -2,6 +2,21 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.0.0] — 2026-09-16
+
+### Added
+
+- Stable npm and MCP release for AI coding assistants.
+- Language filtering for targeted frontend and backend scans.
+- Per-file and global finding caps for predictable scans on large projects.
+- Redaction of token-shaped values in finding snippets before they reach reports or AI tools.
+
+### Changed
+
+- Updated MCP and SARIF runtime metadata to `1.0.0`.
+- Translated remaining runtime-facing text to English.
+- Synchronized package and lockfile release metadata.
+
 ## [0.3.0] — 2026-09-15
 
 ### Added
