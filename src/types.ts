@@ -1,0 +1,104 @@
+export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+
+export type Layer =
+  | 'frontend'
+  | 'backend'
+  | 'network'
+  | 'database'
+  | 'cicd'
+  | 'observability';
+
+export type Language =
+  | 'javascript'
+  | 'typescript'
+  | 'python'
+  | 'java'
+  | 'go'
+  | 'json'
+  | 'yaml'
+  | 'toml'
+  | 'dockerfile'
+  | 'unknown';
+
+export interface MatchContext {
+  readonly snippet: string;
+  readonly line: number;
+  readonly column: number;
+}
+
+export interface FixPatch {
+  readonly find: string;
+  readonly replace: string;
+  readonly description: string;
+}
+
+export interface Finding {
+  readonly id: string;
+  readonly ruleId: string;
+  readonly title: string;
+  readonly layer: Layer;
+  readonly severity: Severity;
+  readonly file: string;
+  readonly match: MatchContext;
+  readonly description: string;
+  readonly impact: string;
+  readonly remediation: string;
+  readonly references: readonly string[];
+  readonly cwe?: string;
+  readonly owasp?: string;
+  readonly fix?: FixPatch;
+}
+
+export type RuleCheck = (context: RuleContext) => readonly Finding[];
+
+export interface RuleContext {
+  readonly filePath: string;
+  readonly relativePath: string;
+  readonly language: Language;
+  readonly source: string;
+  readonly lines: readonly string[];
+}
+
+export interface Rule {
+  readonly id: string;
+  readonly title: string;
+  readonly layer: Layer;
+  readonly severity: Severity;
+  readonly description: string;
+  readonly threat: string;
+  readonly remediation: string;
+  readonly references: readonly string[];
+  readonly cwe?: string;
+  readonly owasp?: string;
+  readonly languages: readonly Language[];
+  readonly check: RuleCheck;
+}
+
+export interface ScanOptions {
+  readonly rootDir?: string;
+  readonly layers?: readonly Layer[];
+  readonly languages?: readonly Language[];
+  readonly dryRun?: boolean;
+  readonly reportPath?: string;
+  readonly maxMatchesPerFile?: number;
+  readonly ignore?: readonly string[];
+  readonly ruleIds?: readonly string[];
+}
+
+export interface ScanResult {
+  readonly rootDir: string;
+  readonly startedAt: string;
+  readonly finishedAt: string;
+  readonly durationMs: number;
+  readonly filesScanned: number;
+  readonly rulesEvaluated: number;
+  readonly findings: readonly Finding[];
+  readonly summary: ScanSummary;
+  readonly reportPath?: string;
+}
+
+export interface ScanSummary {
+  readonly totalFindings: number;
+  readonly bySeverity: Record<Severity, number>;
+  readonly byLayer: Record<Layer, number>;
+}
