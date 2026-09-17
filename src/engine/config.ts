@@ -28,8 +28,9 @@ export async function loadConfig(rootDir: string): Promise<AiSecurityConfig> {
       const raw = await fs.readFile(file, 'utf8');
       const parsed = JSON.parse(raw) as AiSecurityConfig;
       return mergeConfig(DEFAULT_CONFIG, parsed);
-    } catch {
-      continue;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+      throw new Error(`Invalid Vibe Security config at ${file}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -67,8 +68,8 @@ export function applyConfig(
     .map(([k]) => k);
 
   return {
-    layers: config.layers ?? scanOptions.layers,
-    languages: config.languages ?? scanOptions.languages,
+    layers: scanOptions.layers ?? config.layers,
+    languages: scanOptions.languages ?? config.languages,
     ignore: [...(scanOptions.ignore ?? []), ...(config.ignore ?? [])],
     ruleIds: [...(scanOptions.ruleIds ?? []), ...disabledRuleIds],
   };

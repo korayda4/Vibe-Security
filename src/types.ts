@@ -98,8 +98,15 @@ export interface ScanResult {
   readonly rulesEvaluated: number;
   readonly findings: readonly Finding[];
   readonly summary: ScanSummary;
+  readonly errors?: readonly ScanError[];
   readonly reportPath?: string;
   readonly profile?: ProjectProfile;
+}
+
+export interface ScanError {
+  readonly file?: string;
+  readonly ruleId?: string;
+  readonly message: string;
 }
 
 export interface ProjectProfile {

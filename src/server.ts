@@ -14,7 +14,7 @@ import type { Layer, ScanOptions } from './types.js';
 export const server = new Server(
   {
     name: 'vibe-security',
-    version: '1.0.0',
+    version: '1.1.0',
   },
   {
     capabilities: {

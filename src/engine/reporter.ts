@@ -69,6 +69,18 @@ export function renderSecurityMarkdown(result: ScanResult): string {
   }
   lines.push('');
 
+  if (result.errors && result.errors.length > 0) {
+    lines.push('## Scan Warnings');
+    lines.push('');
+    lines.push(`The scan completed with ${result.errors.length} error(s). Affected files or rules may not have been fully analyzed.`);
+    lines.push('');
+    for (const error of result.errors) {
+      const location = [error.file, error.ruleId].filter(Boolean).join(' / ');
+      lines.push(`- ${location ? `**${location}**: ` : ''}${error.message}`);
+    }
+    lines.push('');
+  }
+
   if (result.summary.totalFindings === 0) {
     lines.push('**No security issues detected.** Maintain a healthy baseline by re-running this scan on every major change.');
     lines.push('');

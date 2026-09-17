@@ -319,6 +319,38 @@ test('applyPatch returns null when snippet not found', () => {
   assert.equal(result, null);
 });
 
+test('auto-fix preserves multiple fixes in the same file', async () => {
+  const result = await scan({ rootDir: FIXTURE_DIR });
+  const files = [...new Set(result.findings.filter((finding) => finding.fix).map((finding) => finding.file))];
+  const originals = new Map(
+    await Promise.all(
+      files.map(async (file) => [file, await fs.readFile(path.join(FIXTURE_DIR, file), 'utf8')] as const)
+    )
+  );
+  try {
+    const findings = result.findings.filter((finding) => finding.file === 'next.config.js' && finding.fix);
+    assert.ok(findings.length > 0, 'fixture should contain fixable findings');
+    const summary = await applyFixes(result, { dryRun: false });
+    assert.ok(summary.applied.length >= findings.length);
+  } finally {
+    await Promise.all(
+      [...originals].map(([file, content]) => fs.writeFile(path.join(FIXTURE_DIR, file), content, 'utf8'))
+    );
+  }
+});
+
+test('auto-fix skips files outside the scan root', async () => {
+  const result = await scan({ rootDir: FIXTURE_DIR });
+  const finding = result.findings.find((item) => item.fix);
+  assert.ok(finding, 'fixture should contain a fixable finding');
+  const summary = await applyFixes(
+    { ...result, findings: [{ ...finding, file: '../outside.txt' }] },
+    { dryRun: false }
+  );
+  assert.equal(summary.applied.length, 0);
+  assert.equal(summary.skipped[0]?.reason, 'file is outside scan root');
+});
+
 test('Baseline: detect new findings on second scan', async () => {
   const baselinePath = path.join(FIXTURE_DIR, '.test-baseline.json');
   const first = await scan({ rootDir: FIXTURE_DIR });

@@ -26,48 +26,83 @@ export async function applyFixes(
 ): Promise<FixSummary> {
   const fixesByFile = new Map<string, AppliedFix[]>();
   const skipped: { ruleId: string; file: string; reason: string }[] = [];
+  const findingsByFile = new Map<string, Finding[]>();
 
   for (const finding of result.findings) {
     if (!finding.fix) continue;
     if (options.onlyRuleIds && !options.onlyRuleIds.includes(finding.ruleId)) continue;
+    const list = findingsByFile.get(finding.file) ?? [];
+    list.push(finding);
+    findingsByFile.set(finding.file, list);
+  }
 
-    const absPath = path.resolve(result.rootDir, finding.file);
+  const rootDir = await fs.realpath(result.rootDir).catch(() => path.resolve(result.rootDir));
+  for (const [relativeFile, fileFindings] of findingsByFile) {
+    const absPath = path.resolve(result.rootDir, relativeFile);
+    const relativeToRoot = path.relative(rootDir, absPath);
+    if (relativeToRoot.startsWith('..' + path.sep) || path.isAbsolute(relativeToRoot)) {
+      for (const finding of fileFindings) {
+        skipped.push({ ruleId: finding.ruleId, file: finding.file, reason: 'file is outside scan root' });
+      }
+      continue;
+    }
+
+    const realPath = await fs.realpath(absPath).catch(() => null);
+    if (!realPath) {
+      for (const finding of fileFindings) {
+        skipped.push({ ruleId: finding.ruleId, file: finding.file, reason: 'cannot resolve file' });
+      }
+      continue;
+    }
+    const realRelativeToRoot = path.relative(rootDir, realPath);
+    if (realRelativeToRoot.startsWith('..' + path.sep) || path.isAbsolute(realRelativeToRoot)) {
+      for (const finding of fileFindings) {
+        skipped.push({ ruleId: finding.ruleId, file: finding.file, reason: 'file resolves outside scan root' });
+      }
+      continue;
+    }
+
     let source: string;
     try {
       source = await fs.readFile(absPath, 'utf8');
     } catch {
-      skipped.push({ ruleId: finding.ruleId, file: finding.file, reason: 'cannot read file' });
+      for (const finding of fileFindings) {
+        skipped.push({ ruleId: finding.ruleId, file: finding.file, reason: 'cannot read file' });
+      }
       continue;
     }
 
-    const patched = applyPatch(source, finding.fix);
-    if (patched === null) {
-      skipped.push({
-        ruleId: finding.ruleId,
+    let current = source;
+    for (const finding of fileFindings) {
+      const patched = applyPatch(current, finding.fix!);
+      if (patched === null) {
+        skipped.push({
+          ruleId: finding.ruleId,
+          file: finding.file,
+          reason: 'patch snippet not found (file may have changed)',
+        });
+        continue;
+      }
+      if (patched === current) {
+        skipped.push({ ruleId: finding.ruleId, file: finding.file, reason: 'no change' });
+        continue;
+      }
+
+      const entry: AppliedFix = {
         file: finding.file,
-        reason: 'patch snippet not found (file may have changed)',
-      });
-      continue;
+        ruleId: finding.ruleId,
+        description: finding.fix!.description,
+        before: finding.fix!.find.trim(),
+        after: finding.fix!.replace.trim(),
+      };
+      const entries = fixesByFile.get(finding.file) ?? [];
+      entries.push(entry);
+      fixesByFile.set(finding.file, entries);
+      current = patched;
     }
 
-    if (patched === source) {
-      skipped.push({ ruleId: finding.ruleId, file: finding.file, reason: 'no change' });
-      continue;
-    }
-
-    const entry: AppliedFix = {
-      file: finding.file,
-      ruleId: finding.ruleId,
-      description: finding.fix.description,
-      before: finding.fix.find.trim(),
-      after: finding.fix.replace.trim(),
-    };
-
-    if (!fixesByFile.has(finding.file)) fixesByFile.set(finding.file, []);
-    fixesByFile.get(finding.file)!.push(entry);
-
-    if (!options.dryRun) {
-      await fs.writeFile(absPath, patched, 'utf8');
+    if (!options.dryRun && current !== source) {
+      await fs.writeFile(absPath, current, 'utf8');
     }
   }
 

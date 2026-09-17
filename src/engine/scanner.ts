@@ -8,6 +8,7 @@ import type {
   Layer,
   ScanOptions,
   ScanResult,
+  ScanError,
   ScanSummary,
   Severity,
 } from '../types.js';
@@ -47,6 +48,7 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
 
   const rulesEvaluated = new Set<string>();
   const findings: Finding[] = [];
+  const errors: ScanError[] = [];
   const applicableRules = new Set<string>();
   const maxPerFile = options.maxMatchesPerFile ?? PER_FILE_FINDING_CAP;
   const sourcesForProfile: Array<{ relativePath: string; source?: string }> = [];
@@ -55,8 +57,9 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
     let source: string;
     try {
       source = await fs.readFile(file.absolutePath, 'utf8');
-    } catch {
-      source = '';
+    } catch (err) {
+      errors.push({ file: file.relativePath, message: `cannot read file: ${errorMessage(err)}` });
+      continue;
     }
 
     const language = detectLanguage(file.relativePath, source);
@@ -94,6 +97,11 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
           lines,
         });
       } catch (err) {
+        errors.push({
+          file: file.relativePath,
+          ruleId: rule.id,
+          message: `rule failed: ${errorMessage(err)}`,
+        });
         continue;
       }
 
@@ -129,8 +137,13 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
     rulesEvaluated: rulesEvaluated.size,
     findings: findings.slice(0, GLOBAL_FINDING_CAP),
     summary,
+    errors,
     profile,
   };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export function summarize(findings: readonly Finding[]): ScanSummary {

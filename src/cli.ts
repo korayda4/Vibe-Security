@@ -30,9 +30,11 @@ interface CliArgs {
 
 function parseArgs(argv: readonly string[]): CliArgs {
   const args = argv.slice(2);
+  const knownCommands = new Set(['scan', 'list', 'rules', 'init', 'baseline']);
+  const hasCommand = knownCommands.has(args[0] ?? '');
   const out: CliArgs = {
-    cmd: args[0] ?? 'scan',
-    target: args[1] ?? process.cwd(),
+    cmd: hasCommand ? args[0] : 'scan',
+    target: hasCommand && args[1] && !args[1].startsWith('-') ? args[1] : process.cwd(),
     format: 'markdown',
     fix: false,
     dryRun: false,
@@ -42,7 +44,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     help: false,
   };
 
-  for (let i = 2; i < args.length; i++) {
+  for (let i = hasCommand && out.target !== process.cwd() ? 2 : hasCommand ? 1 : 0; i < args.length; i++) {
     const a = args[i];
     const next = args[i + 1];
     switch (a) {

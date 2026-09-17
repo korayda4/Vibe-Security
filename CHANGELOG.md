@@ -2,6 +2,21 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.1.0] — 2026-09-17
+
+### Added
+
+- Scan results now expose file and rule execution errors instead of presenting partial scans as clean.
+- Security reports include a scan warnings section when analysis is incomplete.
+
+### Changed
+
+- Auto-fixes are grouped per file, preserving multiple fixes in one write operation.
+- Auto-fixes reject path traversal and symlink targets outside the scan root.
+- Explicit CLI layer and language filters take precedence over configuration defaults.
+- CLI options can be used without providing a positional scan path.
+- Invalid configuration files fail clearly instead of being silently ignored.
+
 ## [1.0.0] — 2026-09-16
 
 ### Added
