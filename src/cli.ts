@@ -12,6 +12,8 @@ import { loadConfig } from './engine/config.js';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
+import type { Layer, Language, Severity } from './types.js';
+
 interface CliArgs {
   cmd: string;
   target: string;
@@ -24,12 +26,26 @@ interface CliArgs {
   dryRun: boolean;
   baseline?: string;
   updateBaseline: boolean;
-  layers?: string[];
+  layers?: Layer[];
+  languages?: Language[];
   rules?: string[];
+  blockSeverities?: Severity[];
   watch: boolean;
   noFail: boolean;
   help: boolean;
 }
+
+const VALID_LAYERS = new Set<Layer>([
+  'frontend',
+  'backend',
+  'network',
+  'database',
+  'cicd',
+  'observability',
+  'lint',
+]);
+
+const VALID_SEVERITIES = new Set<Severity>(['critical', 'high', 'medium', 'low', 'info']);
 
 function parseArgs(argv: readonly string[]): CliArgs {
   const args = argv.slice(2);
@@ -72,6 +88,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
         break;
       case '--output':
       case '-o':
+      case '--report-path':
         out.output = next;
         i++;
         break;
@@ -91,11 +108,31 @@ function parseArgs(argv: readonly string[]): CliArgs {
         out.updateBaseline = true;
         break;
       case '--layers':
-        out.layers = (next ?? '').split(',').filter(Boolean);
+        out.layers = (next ?? '')
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter((s): s is Layer => VALID_LAYERS.has(s as Layer));
+        i++;
+        break;
+      case '--languages':
+      case '--lang':
+      case '-l':
+        out.languages = (next ?? '')
+          .split(',')
+          .map((s) => s.trim().toLowerCase() as Language)
+          .filter(Boolean);
         i++;
         break;
       case '--rules':
         out.rules = (next ?? '').split(',').filter(Boolean);
+        i++;
+        break;
+      case '--block':
+      case '--block-severities':
+        out.blockSeverities = (next ?? '')
+          .split(',')
+          .map((s) => s.trim().toLowerCase())
+          .filter((s): s is Severity => VALID_SEVERITIES.has(s as Severity));
         i++;
         break;
       case '--watch':
@@ -251,7 +288,8 @@ async function cmdScan(args: CliArgs): Promise<number> {
     rootDir,
     targetPath,
     detailed: args.detailed,
-    layers: args.layers as any,
+    layers: args.layers,
+    languages: args.languages,
     ruleIds: args.rules,
     ignore: config.ignore,
   });
@@ -375,8 +413,10 @@ async function cmdCheckBuild(args: CliArgs): Promise<number> {
     rootDir,
     targetPath,
     detailed: args.detailed,
-    layers: args.layers as any,
+    layers: args.layers,
+    languages: args.languages,
     ruleIds: args.rules,
+    blockSeverities: args.blockSeverities,
     reportPath: args.output,
     fix: args.fix,
     dryRun: args.dryRun,

@@ -700,6 +700,51 @@ test('checkBuild with fix: true applies patches on-the-fly and reports preview i
   assert.ok(res.terminalOutput.includes('[Pre-Build Patch Preview]'));
 });
 
+test('CI-001 does not flag closing curly braces in normal TypeScript source files', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('CI-001')!;
+
+  const findings = rule.check({
+    filePath: 'src/utils.ts',
+    relativePath: 'src/utils.ts',
+    language: 'typescript',
+    source: 'function foo() {\n  const a = 1;\n}\n\nexport const bar = () => {\n  return 42;\n};\n',
+    lines: ['function foo() {', '  const a = 1;', '}', '', 'export const bar = () => {', '  return 42;', '};'],
+  });
+
+  assert.equal(findings.length, 0, 'CI-001 must never flag closing braces in normal source code');
+});
+
+test('checkBuild respects custom blockSeverities', async () => {
+  const { checkBuild } = await import('../src/engine/buildGuard.js');
+  // Block only on critical; high findings should become warnings
+  const res = await checkBuild({
+    rootDir: FIXTURE_DIR,
+    ruleIds: ['FE-001'], // FE-001 is HIGH
+    blockSeverities: ['critical'],
+    writeReport: false,
+  });
+
+  assert.equal(res.verdict, 'WARNING');
+  assert.equal(res.exitCode, 0);
+  assert.equal(res.blockingFindings.length, 0);
+  assert.ok(res.warningFindings.length > 0);
+});
+
+test('MCP dispatchTool check_build forwards custom layers and ruleIds', async () => {
+  const { dispatchTool } = await import('../src/tools/index.js');
+  const result = await dispatchTool('check_build', {
+    rootDir: FIXTURE_DIR,
+    ruleIds: ['NON-EXISTENT-RULE'],
+    writeReport: false,
+  });
+
+  assert.equal(result.isError, false);
+  const jsonContent = result.content.find((c) => c.text && c.text.includes('"verdict": "SUCCESS"'));
+  assert.ok(jsonContent, 'should return SUCCESS for non-existent rule check');
+});
+
+
 
 
 

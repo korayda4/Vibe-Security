@@ -23,27 +23,34 @@ const rule: Rule = {
   ],
   cwe: 'CWE-1357',
   owasp: 'A06:2021 Vulnerable and Outdated Components',
-  languages: ['javascript', 'typescript', 'python', 'go', 'json'],
+  languages: ['json', 'dockerfile', 'yaml', 'unknown'],
   check: (ctx) => {
-    const patterns: RegExp[] = [
-/^(\s*)\}\s*$/gm,
-/pip\s+install\s+(?!.*--require-hashes)/g,
-      /npm\s+install\s+(?!.*--ignore-scripts)/g,
-/FROM\s+[^:\n]+:latest/g,
-    ];
-
-    if (/(?:package\.json|requirements\.txt|pyproject\.toml|go\.mod)$/i.test(ctx.relativePath)) {
+    // 1. In package.json, verify if security audit script is defined
+    if (/(?:package\.json)$/i.test(ctx.relativePath)) {
       const hasAudit = /"audit"|pip-audit|snyk|dependabot|renovate/i.test(ctx.source);
-      if (!hasAudit && /(?:package\.json)$/i.test(ctx.relativePath)) {
+      if (!hasAudit) {
         return grepRule(rule, ctx, /"scripts"\s*:\s*\{/g);
       }
+      return [];
     }
 
-    const findings = [];
-    for (const re of patterns) {
-      findings.push(...grepRule(rule, ctx, re));
+    // 2. In CI/CD configurations, Dockerfiles, or shell scripts, check for unpinned or unsafe installs
+    if (/(?:Dockerfile|Containerfile|\.ya?ml|\.sh|\.bash|Makefile)$/i.test(ctx.relativePath)) {
+      const patterns: RegExp[] = [
+        /pip\s+install\s+(?!.*--require-hashes)/g,
+        /npm\s+install\s+(?!.*--ignore-scripts)/g,
+        /FROM\s+[^:\n]+:latest/g,
+      ];
+
+      const findings = [];
+      for (const re of patterns) {
+        findings.push(...grepRule(rule, ctx, re));
+      }
+      return findings;
     }
-    return findings;
+
+    // Normal source code files (.ts, .js, .py, .go, etc.) should not trigger CI-001
+    return [];
   },
 };
 

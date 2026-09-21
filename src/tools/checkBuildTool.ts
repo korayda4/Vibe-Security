@@ -1,6 +1,6 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { checkBuild, type BuildCheckOptions } from '../engine/buildGuard.js';
-import type { Severity } from '../types.js';
+import type { Layer, Language, Severity } from '../types.js';
 
 export const checkBuildToolDefinition = {
   name: 'check_build',
@@ -39,6 +39,24 @@ export const checkBuildToolDefinition = {
         },
         description: 'Severities that block the build (default: ["critical", "high"])',
       },
+      layers: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['frontend', 'backend', 'network', 'database', 'cicd', 'observability', 'lint'],
+        },
+        description: 'Limit build check to selected layers',
+      },
+      languages: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Limit build check to selected programming languages',
+      },
+      ruleIds: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Limit build check to specific rule IDs',
+      },
       fix: {
         type: 'boolean',
         description: 'Automatically apply patches for fixable vulnerabilities on the fly to unblock the build',
@@ -67,6 +85,9 @@ export async function handleCheckBuild(
     const blockSeverities = Array.isArray(rawArgs.blockSeverities)
       ? (rawArgs.blockSeverities as Severity[])
       : undefined;
+    const layers = Array.isArray(rawArgs.layers) ? (rawArgs.layers as Layer[]) : undefined;
+    const languages = Array.isArray(rawArgs.languages) ? (rawArgs.languages as Language[]) : undefined;
+    const ruleIds = Array.isArray(rawArgs.ruleIds) ? (rawArgs.ruleIds as string[]) : undefined;
 
     const result = await checkBuild({
       rootDir,
@@ -75,6 +96,9 @@ export async function handleCheckBuild(
       writeReport,
       reportPath,
       blockSeverities,
+      layers,
+      languages,
+      ruleIds,
       fix,
       dryRun,
     });

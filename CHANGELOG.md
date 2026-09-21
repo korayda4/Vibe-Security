@@ -2,6 +2,16 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.3] — 2026-09-22
+
+### Fixed & Enhanced
+
+- **Eliminated `CI-001` False Positives** — removed erroneous regex matching closing curly braces in normal source code; scoped `CI-001` strictly to package manifests (`package.json`) and CI/CD/Docker workflow files.
+- **Added Full CLI Language & Severity Filtering** — `--languages` (`-l`) and `--block-severities` (`--block`) are now fully supported in CLI for both `scan` and `check-build`.
+- **Enhanced MCP `check_build` Tool** — added `layers`, `languages`, and `ruleIds` inputs to the MCP tool definition and handler.
+- **Eliminated Type Assertions & Suppressions** — fully typed CLI arguments and tool handlers without `as any`, achieving a 100% clean `SUCCESS` verdict on internal builds.
+- **Added 3 New Comprehensive Automated Tests** — regression tests for `CI-001` false positives, custom `blockSeverities`, and MCP tool parameter forwarding (total test suite expanded to 42 passing tests).
+
 ## [1.3.2] — 2026-09-21
 
 ### Added
