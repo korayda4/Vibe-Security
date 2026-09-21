@@ -9,6 +9,7 @@ import { rules as rustRules } from './rust/index.js';
 import { rules as rubyRules } from './ruby/index.js';
 import { rules as phpRules } from './php/index.js';
 import { rules as kotlinRules } from './kotlin/index.js';
+import { rules as vibeRules } from './vibe/index.js';
 
 export interface RegisteredRule extends Rule {}
 
@@ -23,6 +24,7 @@ const registry: RegisteredRule[] = [
   ...Object.values(rubyRules),
   ...Object.values(phpRules),
   ...Object.values(kotlinRules),
+  ...Object.values(vibeRules),
 ];
 
 export function getAllRules(): readonly RegisteredRule[] {

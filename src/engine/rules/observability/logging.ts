@@ -1,5 +1,5 @@
 import type { Rule } from '../../../types.js';
-import { grepRule } from '../_helpers.js';
+import { grepRule, matchAll, lineColumnFromIndex, snippetAt } from '../_helpers.js';
 
 const rule: Rule = {
   id: 'OBS-001',
@@ -25,16 +25,51 @@ const rule: Rule = {
   languages: ['javascript', 'typescript', 'python', 'java', 'go'],
   check: (ctx) => {
     const patterns: RegExp[] = [
-/console\.log\s*\([^)]*(?:password|passwd|pwd|token|secret|api[_-]?key|cvv|cardNumber|ssn|tcKimlik)/gi,
+      /console\.log\s*\([^)]*(?:password|passwd|pwd|token|secret|api[_-]?key|cvv|cardNumber|ssn|tcKimlik)/gi,
       /logger?\.(?:info|debug|warn)\s*\([^)]*(?:password|passwd|pwd|token|secret|api[_-]?key|cvv|cardNumber|ssn|tcKimlik)/gi,
-/res\.(?:send|json)\s*\(\s*\{\s*[^}]*error\s*:\s*err\.stack/gi,
+      /res\.(?:send|json)\s*\(\s*\{\s*[^}]*error\s*:\s*err\.stack/gi,
       /res\.(?:send|json)\s*\(\s*err\.stack/gi,
-/print\s*\(\s*[^)]*(?:password|secret|token|api[_-]?key)/gi,
+      /print\s*\(\s*[^)]*(?:password|secret|token|api[_-]?key)/gi,
     ];
 
     const findings = [];
     for (const re of patterns) {
-      findings.push(...grepRule(rule, ctx, re));
+      for (const m of matchAll(re, ctx.source)) {
+        if (m.index === undefined) continue;
+        const { line } = lineColumnFromIndex(ctx.source, m.index);
+        let fix;
+        if (m[0].includes('err.stack')) {
+          if (m[0].includes('error: err.stack')) {
+            fix = {
+              find: 'error: err.stack',
+              replace: "error: 'Internal Server Error'",
+              description: 'Hide internal stack trace from client responses',
+            };
+          } else {
+            fix = {
+              find: 'err.stack',
+              replace: "'Internal Server Error'",
+              description: 'Replace raw error stack with generic error message',
+            };
+          }
+        }
+        findings.push({
+          id: `${rule.id}-${ctx.relativePath}-${line}-${m[0].length}`,
+          ruleId: rule.id,
+          title: rule.title,
+          layer: rule.layer,
+          severity: rule.severity,
+          file: ctx.relativePath,
+          match: { snippet: snippetAt(ctx.source, line), line, column: m.index },
+          description: rule.description,
+          impact: rule.threat,
+          remediation: rule.remediation,
+          references: rule.references,
+          cwe: rule.cwe,
+          owasp: rule.owasp,
+          fix,
+        });
+      }
     }
     return findings;
   },

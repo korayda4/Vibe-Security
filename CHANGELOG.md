@@ -2,6 +2,25 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.2.0] — 2026-09-21
+
+### Added
+
+- **Programmatic Library API** — `src/index.ts` exports `scan`, `applyFixes`, `getAllRules`, `detectLanguage`, `readBaseline`, `writeSecurityReport`, and TypeScript definitions for programmatic use via `npm i`.
+- **Standalone MCP Server Binary** — `vibe-security-mcp` binary (`dist/mcp.js`), decoupling library imports from stdio MCP server execution.
+- **`apply_fix` MCP Tool** — enables AI agents to preview unified diffs (`dryRun: true`) and apply security patches via MCP.
+- **Agent Action Protocol (AAP) Skill** — `skills/vibe-security/SKILL.md` standard for Antigravity, Gemini CLI, Claude Code, and Cursor.
+- **UNIQUE Vibe-Coding Rules (`AI-001` - `AI-004`)** — detects client-side LLM SDK key leaks, Supabase `SERVICE_ROLE_KEY` client leaks, Next.js Server Action auth bypasses, and Prompt Injection sinks.
+- **Automated Fix Patches** — added auto-fix patches for `AI-001` (client LLM leaks) and `OBS-001` (stack trace disclosure).
+- **Multi-Environment Init** — `vibe-security init` now sets up `.agents/skills/` and `.cursor/rules/` alongside Claude Code and VS Code.
+
+### Changed
+
+- **False Positive Elimination in `BE-004`** — removed broad matching on benign MongoDB operators (`$gt`, `$lt`, `$ne`), keeping accurate NoSQL injection detection without noise.
+- **Line-Invariant Baseline Tracking** — `findingFingerprint` now tolerates line insertions and code shifts without falsely re-flagging baseline findings.
+- **Modular MCP Tool Architecture** — tool handlers moved to dedicated modules under `src/tools/` (SOLID Single Responsibility).
+- **Package Publishing Metadata** — added `publishConfig: { access: "public" }`, `types`, and modern `"exports"` map to `package.json`.
+
 ## [1.1.0] — 2026-09-17
 
 ### Added

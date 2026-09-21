@@ -133,6 +133,8 @@ async function cmdInit(rootDir: string): Promise<void> {
   const slashCommandPath = path.join(rootDir, '.claude', 'commands', 'securityCheck.md');
   const vscodeSettingsPath = path.join(rootDir, '.vscode', 'settings.json');
   const ghInstructionsPath = path.join(rootDir, '.github', 'instructions', 'security-check.instructions.md');
+  const agentSkillPath = path.join(rootDir, '.agents', 'skills', 'vibe-security', 'SKILL.md');
+  const cursorRulePath = path.join(rootDir, '.cursor', 'rules', 'security.mdc');
 
   const config = {
     rules: {
@@ -145,10 +147,13 @@ async function cmdInit(rootDir: string): Promise<void> {
   await fs.mkdir(path.dirname(configPath), { recursive: true });
   await fs.writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
   console.log(`✅ ${configPath}`);
-for (const [target, content] of [
+
+  for (const [target, content] of [
     [slashCommandPath, SLASH_COMMAND_CLAUDE],
     [vscodeSettingsPath, VSCODE_SETTINGS],
     [ghInstructionsPath, SLASH_COMMAND_GITHUB],
+    [agentSkillPath, AGENT_SKILL_ANTIGRAVITY],
+    [cursorRulePath, CURSOR_RULE],
   ] as const) {
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, content, 'utf8');
@@ -157,6 +162,8 @@ for (const [target, content] of [
 
   console.log('\n👉 Next:');
   console.log('   • Claude Code: type /securityCheck');
+  console.log('   • Antigravity / Gemini: .agents/skills/vibe-security skill activated');
+  console.log('   • Cursor: .cursor/rules/security.mdc rule activated');
   console.log('   • VS Code: reload window, MCP server will be picked up automatically');
   console.log('   • CI: add `npx -y vibe-security scan . --format sarif` to your workflow');
 }
@@ -378,4 +385,32 @@ Available MCP tools:
 - \`scan_file\` -- single file scan
 - \`list_rules\` -- list all rules
 - \`get_rule_detail\` -- get rule details (use this for auto-fix suggestions)
+- \`apply_fix\` -- preview or apply auto-fixes
+`;
+
+const AGENT_SKILL_ANTIGRAVITY = `---
+name: vibe-security
+description: Security guard and automated remediation skill for AI-generated code. Scans projects across frontend, backend, database, network, cicd, and observability layers, detects vulnerabilities, and safely plans and applies auto-fixes.
+---
+
+# Vibe Security - Agent Action Protocol (AAP) Skill
+
+When performing security checks or auditing generated code, use the Vibe Security tools:
+1. Scan project via MCP \`scan_project\` or CLI \`vibe-security scan .\`.
+2. Inspect Critical and High findings.
+3. For auto-fixable findings, use MCP \`apply_fix\` with \`dryRun: true\` to inspect diffs, then apply with \`dryRun: false\`.
+4. Check \`Security.md\` for complete remediation instructions.
+`;
+
+const CURSOR_RULE = `---
+description: Run security checks and remediation on project code
+globs: *
+alwaysApply: false
+---
+
+# Vibe Security Guard
+
+- Before committing or completing feature implementation, run \`vibe-security scan .\`.
+- Review critical findings in \`Security.md\`.
+- Use \`vibe-security scan . --fix --dry-run\` to preview automatic patches for common security vulnerabilities (XSS, cookie flags, security headers).
 `;

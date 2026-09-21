@@ -31,8 +31,10 @@ const rule: Rule = {
       /\$\{[^}]*(req\.|request\.|input|params|body|query)[^}]*\}\s*['"`]\s*(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE)/gi,
 /f['"`](?:SELECT|INSERT|UPDATE|DELETE|DROP).*\{[^}]*(?:request|input|args|params)/gi,
       /['"`](?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE)[^'"`]*['"`]\s*%\s*\(/g,
-/(?:createQuery|createNativeQuery)\s*\([^)]*\+[^)]*(?:request|param)/g,
-/\$(?:where|function|regex|ne|gt|lt)\s*:/g,
+      /(?:createQuery|createNativeQuery)\s*\([^)]*\+[^)]*(?:request|param)/g,
+      /\$where\s*:\s*(?:['"`][^'"`]*\$\{|(?:req\.|request\.|input|params|body|query|\+))/gi,
+      /\.(?:find|findOne|countDocuments|deleteOne|updateOne)\s*\(\s*(?:req\.query|req\.body)\s*\)/g,
+      /\$(?:where|function)\s*:\s*(?:function|\([^)]*\)\s*=>)/g,
     ];
 
     const findings = [];

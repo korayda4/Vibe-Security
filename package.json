@@ -1,11 +1,25 @@
 {
   "name": "@korayda4/vibe-security",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Security guard MCP server for Vibe Coded projects — scans Frontend and Backend across every layer and language, plans + tests + fixes vulnerabilities. Claude Code and VS Code Anthropic Claude extension compatible.",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
-    "vibe-security": "dist/cli.js"
+    "vibe-security": "dist/cli.js",
+    "vibe-security-mcp": "dist/mcp.js"
   },
   "files": [
     "dist",
@@ -15,7 +29,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "start": "node dist/index.js",
+    "start": "node dist/mcp.js",
     "cli": "node dist/cli.js",
     "test": "node --test --import tsx --test-reporter=spec test/test.ts",
     "lint": "tsc --noEmit",

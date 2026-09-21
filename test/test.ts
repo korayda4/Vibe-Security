@@ -423,3 +423,92 @@ test('config: rule disable via .vibe-security.json', async () => {
     }
   }
 });
+
+test('programmatic library exports from src/index.ts are functional', async () => {
+  const lib = await import('../src/index.js');
+  assert.equal(typeof lib.scan, 'function', 'scan should be exported');
+  assert.equal(typeof lib.applyFixes, 'function', 'applyFixes should be exported');
+  assert.equal(typeof lib.getAllRules, 'function', 'getAllRules should be exported');
+  assert.equal(typeof lib.writeSecurityReport, 'function', 'writeSecurityReport should be exported');
+  assert.equal(typeof lib.detectLanguage, 'function', 'detectLanguage should be exported');
+  assert.equal(typeof lib.readBaseline, 'function', 'readBaseline should be exported');
+  assert.ok(lib.getAllRules().length >= 40, 'should export 40+ rules');
+});
+
+test('MCP dispatchTool handles all tools including apply_fix', async () => {
+  const { allTools, dispatchTool } = await import('../src/tools/index.js');
+  assert.ok(allTools.some((t) => t.name === 'apply_fix'), 'apply_fix tool should exist in registry');
+  assert.ok(allTools.some((t) => t.name === 'scan_project'), 'scan_project tool should exist');
+
+  // Test apply_fix with dryRun: true on fixture
+  const result = await dispatchTool('apply_fix', {
+    rootDir: FIXTURE_DIR,
+    dryRun: true,
+  });
+  assert.equal(result.isError, false);
+  assert.ok(result.content[0].text.includes('Dry Run Mode'));
+});
+
+test('UNIQUE Vibe-Coding rules detect AI vulnerabilities', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+
+  const ai001 = getRuleById('AI-001');
+  assert.ok(ai001, 'AI-001 rule should exist');
+  const ai001Findings = ai001.check({
+    filePath: 'client.tsx',
+    relativePath: 'client.tsx',
+    language: 'typescript',
+    source: 'const openai = new OpenAI({ apiKey: "sk-proj-123456789012345678901234", dangerouslyAllowBrowser: true });',
+    lines: ['const openai = new OpenAI({ apiKey: "sk-proj-123456789012345678901234", dangerouslyAllowBrowser: true });'],
+  });
+  assert.ok(ai001Findings.length > 0, 'AI-001 should detect dangerouslyAllowBrowser');
+  assert.ok(ai001Findings[0].fix, 'AI-001 should provide fix patch');
+
+  const ai002 = getRuleById('AI-002');
+  assert.ok(ai002, 'AI-002 rule should exist');
+  const ai002Findings = ai002.check({
+    filePath: 'supabaseClient.ts',
+    relativePath: 'supabaseClient.ts',
+    language: 'typescript',
+    source: 'export const supabase = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY);',
+    lines: ['export const supabase = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY);'],
+  });
+  assert.ok(ai002Findings.length > 0, 'AI-002 should detect exposed SERVICE_ROLE_KEY');
+
+  const ai003 = getRuleById('AI-003');
+  assert.ok(ai003, 'AI-003 rule should exist');
+  const ai003Findings = ai003.check({
+    filePath: 'actions.ts',
+    relativePath: 'actions.ts',
+    language: 'typescript',
+    source: "'use server';\nexport async function deleteUser(id: string) { await prisma.user.delete({ where: { id } }); }",
+    lines: ["'use server';", "export async function deleteUser(id: string) { await prisma.user.delete({ where: { id } }); }"],
+  });
+  assert.ok(ai003Findings.length > 0, 'AI-003 should detect unauthenticated Server Action DB deletion');
+
+  const ai004 = getRuleById('AI-004');
+  assert.ok(ai004, 'AI-004 rule should exist');
+  const ai004Findings = ai004.check({
+    filePath: 'chat.ts',
+    relativePath: 'chat.ts',
+    language: 'typescript',
+    source: 'const prompt = `System: You are an assistant.\\nUser input: ${req.body.text}`;',
+    lines: ['const prompt = `System: You are an assistant.\\nUser input: ${req.body.text}`;'],
+  });
+  assert.ok(ai004Findings.length > 0, 'AI-004 should detect prompt injection template sink');
+});
+
+test('BE-004 false positive prevention: benign MongoDB queries are not flagged as SQLi', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const be004 = getRuleById('BE-004')!;
+
+  const benignMongoFindings = be004.check({
+    filePath: 'products.ts',
+    relativePath: 'products.ts',
+    language: 'typescript',
+    source: 'const activeItems = await Product.find({ price: { $gt: 50, $lt: 500 }, status: { $ne: "archived" } });',
+    lines: ['const activeItems = await Product.find({ price: { $gt: 50, $lt: 500 }, status: { $ne: "archived" } });'],
+  });
+  assert.equal(benignMongoFindings.length, 0, 'Benign Mongo query using $gt/$lt/$ne must NOT be flagged as SQL injection');
+});
+

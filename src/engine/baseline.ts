@@ -20,7 +20,7 @@ export interface BaselineEntry {
 
 export function findingFingerprint(f: Finding): string {
   return createHash('sha256')
-    .update(`${f.ruleId}|${f.file}|${f.match.line}|${f.match.snippet.trim()}`)
+    .update(`${f.ruleId}|${f.file}|${f.match.snippet.trim()}`)
     .digest('hex')
     .slice(0, 16);
 }
