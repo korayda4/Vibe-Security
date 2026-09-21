@@ -15,6 +15,9 @@ import fs from 'node:fs/promises';
 interface CliArgs {
   cmd: string;
   target: string;
+  targetPath?: string;
+  detailed: boolean;
+  lint: boolean;
   format: string;
   output?: string;
   fix: boolean;
@@ -35,6 +38,8 @@ function parseArgs(argv: readonly string[]): CliArgs {
   const out: CliArgs = {
     cmd: hasCommand ? args[0] : 'scan',
     target: hasCommand && args[1] && !args[1].startsWith('-') ? args[1] : process.cwd(),
+    detailed: false,
+    lint: false,
     format: 'markdown',
     fix: false,
     dryRun: false,
@@ -48,6 +53,19 @@ function parseArgs(argv: readonly string[]): CliArgs {
     const a = args[i];
     const next = args[i + 1];
     switch (a) {
+      case '--detailed':
+      case '-d':
+        out.detailed = true;
+        break;
+      case '--lint':
+        out.lint = true;
+        out.layers = out.layers ? [...out.layers, 'lint'] : ['lint'];
+        break;
+      case '--dir':
+      case '--path':
+        out.targetPath = next;
+        i++;
+        break;
       case '--format':
         out.format = next ?? 'markdown';
         i++;
@@ -109,22 +127,26 @@ Usage:
   vibe-security baseline update [path]
 
 Scan options:
+  --dir, --path <path>                           Target specific directory or file (relative to root)
+  --detailed, -d                                 Run comprehensive deep scan with elevated limits
+  --lint                                         Include or focus on language quality and syntax lint rules
   --format <markdown|json|sarif|junit|compact>   Output format (default: markdown)
   --output, -o <path>                            Output file path
   --fix                                          Apply auto-fixes
   --dry-run                                      Preview auto-fixes without writing
   --baseline <path>                              Show only new findings vs baseline
   --update-baseline                              Write current findings to baseline
-  --layers <f,b,n,d,c,o>                         Scan only these layers
-  --rules <FE-001,BE-004>                        Run only these rules
+  --layers <f,b,n,d,c,o,lint>                    Scan only these layers
+  --rules <FE-001,BE-004,LINT-001>               Run only these rules
   --watch, -w                                    Re-scan on file changes
   --no-fail                                      Exit 0 even with findings
 
 Examples:
-  vibe-security scan . --format sarif --output vibe-security.sarif
+  vibe-security scan . --detailed
+  vibe-security scan src/api/ --format sarif
   vibe-security scan src/ --fix --dry-run
   vibe-security scan . --baseline .vibe-security-baseline.json
-  vibe-security init    # Create .vibe-security.json + slash command files
+  vibe-security init    # Create .vibe-security.json, slash commands, and Agent Skill files
 `);
 }
 
@@ -161,7 +183,7 @@ async function cmdInit(rootDir: string): Promise<void> {
   }
 
   console.log('\n👉 Next:');
-  console.log('   • Claude Code: type /securityCheck');
+  console.log('   • Claude Code: type /securityCheck [path] [--detailed]');
   console.log('   • Antigravity / Gemini: .agents/skills/vibe-security skill activated');
   console.log('   • Cursor: .cursor/rules/security.mdc rule activated');
   console.log('   • VS Code: reload window, MCP server will be picked up automatically');
@@ -181,16 +203,32 @@ async function cmdList(): Promise<void> {
 }
 
 async function cmdScan(args: CliArgs): Promise<number> {
-  const rootDir = path.resolve(args.target);
+  const resolvedTarget = path.resolve(args.target);
+  let rootDir = process.cwd();
+  let targetPath = args.targetPath;
+
+  // Check if args.target is a subdirectory or specific file inside cwd
+  if (resolvedTarget !== rootDir && !targetPath) {
+    if (resolvedTarget.startsWith(rootDir + path.sep)) {
+      targetPath = path.relative(rootDir, resolvedTarget);
+    } else {
+      rootDir = resolvedTarget;
+    }
+  }
 
   if (args.watch) {
     return cmdWatch(args);
   }
 
-  console.log(` Scanning ${rootDir}...`);
+  const scopeMsg = targetPath ? `${rootDir} (target: ${targetPath})` : rootDir;
+  const modeMsg = args.detailed ? ' [Detailed Deep Scan]' : '';
+  console.log(`🔍 Scanning ${scopeMsg}...${modeMsg}`);
+
   const config = await loadConfig(rootDir);
   const result = await scan({
     rootDir,
+    targetPath,
+    detailed: args.detailed,
     layers: args.layers as any,
     ruleIds: args.rules,
     ignore: config.ignore,
@@ -320,39 +358,33 @@ main().catch((err) => {
   process.exit(1);
 });
 const SLASH_COMMAND_CLAUDE = `---
-description: Run Vibe Security scan on the current project and report findings
+description: Run Vibe Security scan on project or specific directory with security and lint checks
 ---
 
-Scan this project for security issues.
+Scan this project for security vulnerabilities and language/lint quality issues.
 
-Use the following MCP tools in order:
+Use the following MCP tools:
 
-1. **mcp__vibe-security__scan_project** -- Scan the entire project. Set the \`rootDir\` parameter to the current working directory.
+1. **scan_project** -- Call \`scan_project\` with \`rootDir\` set to the workspace root.
+   - If user provided a path or directory argument (e.g. \`src/api\`, \`frontend\`, or \`--dir <path>\`): pass it as \`targetPath\`.
+   - If user passed \`--detailed\` or asked for in-depth/detailed check: pass \`detailed: true\`.
+   - If user passed \`--frontend\` / \`--backend\` / \`--lint\` / \`--network\` / \`--database\`: filter via \`layers\`.
+   - If user passed \`--rule <id>\`: pass \`ruleIds: [<id>]\`.
+   - If user passed \`--fix\`: run \`apply_fix\` with \`dryRun: true\` to preview diffs before applying.
 
-2. If the user provided arguments (\$ARGUMENTS):
-   - \`--frontend\` / \`--backend\` / \`--network\` / \`--database\` / \`--cicd\` / \`--observability\` -> filter via the \`layers\` parameter
-   - \`--fix\` -> call \`mcp__vibe-security__get_rule_detail\` for the top 3 critical rules to extract fix suggestions, then present an apply plan to the user
-   - \`--baseline\` -> compare \`mcp__vibe-security__scan_project\` output against the existing baseline, report only the new findings
-   - \`--rule <id>\` -> run only that rule (\`ruleIds\` parameter)
-   - \`--json\` -> request JSON output instead of the table format
+2. Summarize findings clearly into two distinct sections:
+   - **🛡️ Security Findings** (Critical, High, Medium, Low)
+   - **🧹 Language & Lint Quality Issues** (Unhandled exceptions, floating promises, type bypasses, syntax errors)
 
-3. Summarize findings in order: **critical -> high -> medium -> low**.
-
-4. For the **first 3 findings**, write concrete fix suggestions (with code examples).
-
-5. \`Security.md\` is already written by the MCP server. Show the user the file path and total finding count.
-
-Do NOT:
-- Hide or downplay findings.
-- Suggest a fix you are not sure about; point the user to the rule documentation instead.
-- Ask clarifying questions before scanning -- scan directly.
+3. For top critical findings, show: \`file:line\`, snippet, and clear one-line fix.
+4. Report the location of \`Security.md\`.
 `;
 
 const VSCODE_SETTINGS = JSON.stringify(
   {
     'mcp.servers': {
       'vibe-security': {
-        command: 'vibe-security',
+        command: 'vibe-security-mcp',
         type: 'stdio',
       },
     },
@@ -362,55 +394,50 @@ const VSCODE_SETTINGS = JSON.stringify(
 ) + '\n';
 
 const SLASH_COMMAND_GITHUB = `---
-description: Auto-invoked when user runs /securityCheck -- runs Vibe Security MCP scan and explains findings
+description: Auto-invoked when user runs /securityCheck -- runs Vibe Security scan with security and lint checks
 applyTo: "**"
 ---
 
-When the user runs /securityCheck (with or without arguments), you MUST:
+When the user runs /securityCheck (with or without arguments):
 
-1. Call the MCP tool \`scan_project\` provided by the \`vibe-security\` server.
+1. Call the MCP tool \`scan_project\`:
    - \`rootDir\`: \${workspaceFolder}
-   - If the user passed --frontend, --backend, --network, --database, --cicd, or --observability, pass the matching \`layers\` filter.
-   - If the user passed --fix, also call \`get_rule_detail\` for the top 3 critical findings and present auto-fix suggestions inline.
-   - If the user passed --rule <id>, pass \`ruleIds: [<id>]\`.
-2. Summarize the result as a table: severity, count, top 3 files.
-3. For each Critical and High finding, show: file:line, snippet, one-line fix.
-4. Confirm that Security.md was written at the workspace root.
-5. If no findings: congratulate the user.
-
-Do not ask clarifying questions before scanning -- just scan.
-
-Available MCP tools:
-- \`scan_project\` -- full project scan
-- \`scan_file\` -- single file scan
-- \`list_rules\` -- list all rules
-- \`get_rule_detail\` -- get rule details (use this for auto-fix suggestions)
-- \`apply_fix\` -- preview or apply auto-fixes
+   - If user provided a path argument or \`--dir <path>\`: pass \`targetPath: "<path>"\`.
+   - If user passed \`--detailed\`: pass \`detailed: true\`.
+   - If user passed \`--frontend\`, \`--backend\`, \`--lint\`, \`--network\`, \`--database\`: pass matching \`layers\`.
+   - If user passed \`--fix\`: call \`apply_fix\` with \`dryRun: true\` to preview patches.
+2. Group and display findings:
+   - 🛡️ Security Vulnerabilities
+   - 🧹 Language & Lint Quality Issues
+3. For each finding, list \`file:line\`, brief description, and actionable remediation.
+4. Confirm that \`Security.md\` was generated at the workspace root.
 `;
 
 const AGENT_SKILL_ANTIGRAVITY = `---
 name: vibe-security
-description: Security guard and automated remediation skill for AI-generated code. Scans projects across frontend, backend, database, network, cicd, and observability layers, detects vulnerabilities, and safely plans and applies auto-fixes.
+description: Security guard, lint checker, and automated remediation skill for AI-generated code. Scans projects across frontend, backend, database, network, cicd, observability, and lint layers, detects vulnerabilities, and safely applies auto-fixes.
 ---
 
 # Vibe Security - Agent Action Protocol (AAP) Skill
 
-When performing security checks or auditing generated code, use the Vibe Security tools:
-1. Scan project via MCP \`scan_project\` or CLI \`vibe-security scan .\`.
-2. Inspect Critical and High findings.
-3. For auto-fixable findings, use MCP \`apply_fix\` with \`dryRun: true\` to inspect diffs, then apply with \`dryRun: false\`.
-4. Check \`Security.md\` for complete remediation instructions.
+When performing security audits or code quality reviews:
+1. **General Scan:** Call \`scan_project({ rootDir: "." })\`.
+2. **Targeted Folder Scan:** Call \`scan_project({ rootDir: ".", targetPath: "path/to/folder" })\`.
+3. **Detailed Scan:** Call \`scan_project({ rootDir: ".", detailed: true })\` for deep limits and full context.
+4. **Remediation:** For auto-fixable findings, call \`apply_fix({ dryRun: true })\` to review the unified diff, then \`apply_fix({ dryRun: false })\` to apply.
+5. Check \`Security.md\` for complete audit documentation.
 `;
 
 const CURSOR_RULE = `---
-description: Run security checks and remediation on project code
+description: Run security checks and remediation on project or specific folders
 globs: *
 alwaysApply: false
 ---
 
 # Vibe Security Guard
 
-- Before committing or completing feature implementation, run \`vibe-security scan .\`.
-- Review critical findings in \`Security.md\`.
-- Use \`vibe-security scan . --fix --dry-run\` to preview automatic patches for common security vulnerabilities (XSS, cookie flags, security headers).
+- Run \`vibe-security scan .\` for general project scan.
+- Run \`vibe-security scan <path> --detailed\` for targeted deep directory scans.
+- Run \`vibe-security scan . --lint\` to check for language-specific anti-patterns (empty catches, floating promises, type bypasses).
+- Use \`vibe-security scan . --fix --dry-run\` to preview automatic patches for common security and lint errors.
 `;

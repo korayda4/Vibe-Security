@@ -1,36 +1,45 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { scan } from '../engine/scanner.js';
 import { writeSecurityReport } from '../engine/reporter.js';
-import type { Layer, ScanOptions } from '../types.js';
+import type { Finding, Layer, ScanOptions } from '../types.js';
 
 export const scanProjectToolDefinition = {
   name: 'scan_project',
   description:
-    'Scan the entire project for security vulnerabilities across all layers and languages. Returns findings summary and top findings.',
+    'Scan the project for security vulnerabilities and language/lint errors across all layers. Supports full project scans or targeted directory scans, and detailed deep analysis.',
   inputSchema: {
     type: 'object',
     properties: {
       rootDir: {
         type: 'string',
-        description: 'Directory to scan (default: cwd)',
+        description: 'Project root directory (default: cwd)',
+      },
+      targetPath: {
+        type: 'string',
+        description: 'Target specific directory or file path relative to rootDir (for example: "src/api", "frontend", "server")',
+      },
+      detailed: {
+        type: 'boolean',
+        description: 'Run comprehensive deep scan with elevated finding limits and full context (default: false)',
+        default: false,
       },
       layers: {
         type: 'array',
         items: {
           type: 'string',
-          enum: ['frontend', 'backend', 'network', 'database', 'cicd', 'observability'],
+          enum: ['frontend', 'backend', 'network', 'database', 'cicd', 'observability', 'lint'],
         },
-        description: 'Limit scan to selected layers',
+        description: 'Limit scan to selected layers (including lint for language quality and syntax)',
       },
       languages: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Limit scan to selected languages (javascript, typescript, python, etc.)',
+        description: 'Limit scan to selected languages (javascript, typescript, python, go, rust, ruby, php, kotlin, etc.)',
       },
       ruleIds: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Run only selected rules (for example: ["BE-004", "FE-001"])',
+        description: 'Run only selected rules (for example: ["BE-004", "FE-001", "LINT-001"])',
       },
       writeReport: {
         type: 'boolean',
@@ -67,6 +76,8 @@ export const scanProjectToolDefinition = {
 export async function handleScanProject(args: Record<string, unknown> = {}): Promise<CallToolResult> {
   const params = args as {
     rootDir?: string;
+    targetPath?: string;
+    detailed?: boolean;
     layers?: Layer[];
     languages?: ScanOptions['languages'];
     ruleIds?: string[];
@@ -80,6 +91,8 @@ export async function handleScanProject(args: Record<string, unknown> = {}): Pro
 
   const opts: ScanOptions = {
     rootDir: params.rootDir ?? process.cwd(),
+    targetPath: params.targetPath,
+    detailed: params.detailed,
     layers: params.layers,
     languages: params.languages,
     ruleIds: params.ruleIds,
@@ -107,47 +120,92 @@ export async function handleScanProject(args: Record<string, unknown> = {}): Pro
     );
   }
 
-  const summary = formatSummary({ ...result, findings: displayFindings });
-  const topFindings = displayFindings
+  const summary = formatSummary({
+    findings: displayFindings,
+    summary: result.summary,
+    filesScanned: result.filesScanned,
+    rulesEvaluated: result.rulesEvaluated,
+    durationMs: result.durationMs,
+    targetPath: params.targetPath,
+    detailed: params.detailed,
+  });
+
+  // Separate security findings from lint/language quality findings
+  const securityFindings = displayFindings
+    .filter((f) => f.layer !== 'lint')
     .slice()
-    .sort((a, b) => severityRank(a.severity) - severityRank(b.severity))
-    .slice(0, 30);
+    .sort((a, b) => severityRank(a.severity) - severityRank(b.severity));
+
+  const lintFindings = displayFindings
+    .filter((f) => f.layer === 'lint')
+    .slice()
+    .sort((a, b) => severityRank(a.severity) - severityRank(b.severity));
+
   const fixable = params.includeFixes
     ? displayFindings.filter((f) => f.fix).slice(0, 10)
     : [];
 
-  const text = [
+  const topSecurity = securityFindings.slice(0, 20);
+  const topLint = lintFindings.slice(0, 15);
+
+  const lines: string[] = [
     summary,
     '',
-    reportPath ? `📝 Report written to: \`${reportPath}\`` : '',
-    params.baselinePath ? `\n📋 Baseline diff: showing only NEW findings` : '',
+    reportPath ? `📝 Full Report written to: \`${reportPath}\`` : '',
+    params.baselinePath ? `📋 Baseline diff: showing only NEW findings vs baseline` : '',
     '',
-    '## Top Findings',
-    '',
-    topFindings
-      .map(
-        (f) =>
-          `- **${f.severity.toUpperCase()}** [\`${f.ruleId}\`] ${f.title} -- \`${f.file}:${f.match.line}\`${f.fix ? ' 🔧 (auto-fixable)' : ''}`
-      )
-      .join('\n'),
-    displayFindings.length > 30
-      ? `\n\n...and ${displayFindings.length - 30} more (see Security.md).`
-      : '',
-    fixable.length > 0
-      ? `\n\n## 🔧 Auto-fixable (${fixable.length})\n\n` +
-        fixable
-          .map((f) => `### [\`${f.ruleId}\`] ${f.file}:${f.match.line}\n${f.fix!.description}\n`)
-          .join('\n')
-      : '',
-    fixable.length > 0
-      ? `\n💡 AI Agent can preview or apply via the \`apply_fix\` MCP tool.`
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n');
+  ];
+
+  if (topSecurity.length > 0) {
+    lines.push('## 🛡️ Top Security Vulnerabilities');
+    lines.push('');
+    lines.push(
+      topSecurity
+        .map(
+          (f) =>
+            `- **${f.severity.toUpperCase()}** [\`${f.ruleId}\`] ${f.title} -- \`${f.file}:${f.match.line}\`${f.fix ? ' 🔧 (auto-fixable)' : ''}\n  *Action:* ${f.remediation.split('\n')[0]}`
+        )
+        .join('\n')
+    );
+    if (securityFindings.length > 20) {
+      lines.push(`\n...and ${securityFindings.length - 20} more security findings (see Security.md).`);
+    }
+    lines.push('');
+  } else {
+    lines.push('✅ No critical or high security vulnerabilities found in scanned scope.\n');
+  }
+
+  if (topLint.length > 0) {
+    lines.push('## 🧹 Language & Lint Quality Issues');
+    lines.push('');
+    lines.push(
+      topLint
+        .map(
+          (f) =>
+            `- **${f.severity.toUpperCase()}** [\`${f.ruleId}\`] ${f.title} -- \`${f.file}:${f.match.line}\`${f.fix ? ' 🔧' : ''}\n  *Detail:* ${f.description}`
+        )
+        .join('\n')
+    );
+    if (lintFindings.length > 15) {
+      lines.push(`\n...and ${lintFindings.length - 15} more lint warnings (see Security.md).`);
+    }
+    lines.push('');
+  }
+
+  if (fixable.length > 0) {
+    lines.push(`## 🔧 Auto-fixable Findings (${fixable.length})`);
+    lines.push('');
+    lines.push(
+      fixable
+        .map((f) => `### [\`${f.ruleId}\`] ${f.file}:${f.match.line}\n${f.fix!.description}\n`)
+        .join('\n')
+    );
+    lines.push('💡 AI Agent can preview unified diffs or apply fixes via `apply_fix`.');
+    lines.push('');
+  }
 
   return {
-    content: [{ type: 'text', text }],
+    content: [{ type: 'text', text: lines.join('\n') }],
     isError: false,
   };
 }
@@ -157,16 +215,24 @@ function severityRank(s: string): number {
 }
 
 function formatSummary(result: {
-  findings: readonly { severity: string }[];
+  findings: readonly Finding[];
   summary: { totalFindings: number; bySeverity: Record<string, number>; byLayer: Record<string, number> };
   filesScanned: number;
   rulesEvaluated: number;
   durationMs: number;
+  targetPath?: string;
+  detailed?: boolean;
 }): string {
   const { bySeverity, byLayer } = result.summary;
   const lines: string[] = [];
-  lines.push(`# Vibe Security Scan Complete`);
+  lines.push(`# Vibe Security Audit Complete`);
   lines.push('');
+  if (result.targetPath) {
+    lines.push(`- **Target Scope:** \`${result.targetPath}\``);
+  }
+  if (result.detailed) {
+    lines.push(`- **Scan Mode:** 🔬 Detailed Deep Scan`);
+  }
   lines.push(`- **Total findings:** ${result.summary.totalFindings}`);
   lines.push(`- **Files scanned:** ${result.filesScanned}`);
   lines.push(`- **Rules evaluated:** ${result.rulesEvaluated}`);
@@ -184,7 +250,7 @@ function formatSummary(result: {
   lines.push('');
   lines.push('| Layer | Count |');
   lines.push('| --- | --- |');
-  for (const layer of ['frontend', 'backend', 'network', 'database', 'cicd', 'observability']) {
+  for (const layer of ['frontend', 'backend', 'network', 'database', 'cicd', 'observability', 'lint']) {
     lines.push(`| ${layer} | ${byLayer[layer] ?? 0} |`);
   }
   return lines.join('\n');

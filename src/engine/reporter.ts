@@ -9,6 +9,7 @@ const LAYER_LABELS: Record<Layer, string> = {
   database: 'Database',
   cicd: 'CI/CD & DevOps',
   observability: 'Observability',
+  lint: 'Language & Lint Quality',
 };
 
 const LAYER_DESCRIPTIONS: Record<Layer, string> = {
@@ -18,6 +19,7 @@ const LAYER_DESCRIPTIONS: Record<Layer, string> = {
   database: 'Privilege separation, encryption at rest and in transit',
   cicd: 'Dependency hygiene, secret management, build pipeline',
   observability: 'Error handling, log safety, anomaly detection',
+  lint: 'Syntax errors, unhandled exceptions, type bypasses, and floating promises',
 };
 
 const SEVERITY_EMOJI: Record<Severity, string> = {

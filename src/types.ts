@@ -6,7 +6,8 @@ export type Layer =
   | 'network'
   | 'database'
   | 'cicd'
-  | 'observability';
+  | 'observability'
+  | 'lint';
 
 export type Language =
   | 'javascript'
@@ -80,6 +81,8 @@ export interface Rule {
 
 export interface ScanOptions {
   readonly rootDir?: string;
+  readonly targetPath?: string;
+  readonly detailed?: boolean;
   readonly layers?: readonly Layer[];
   readonly languages?: readonly Language[];
   readonly dryRun?: boolean;
@@ -91,6 +94,8 @@ export interface ScanOptions {
 
 export interface ScanResult {
   readonly rootDir: string;
+  readonly targetPath?: string;
+  readonly detailed?: boolean;
   readonly startedAt: string;
   readonly finishedAt: string;
   readonly durationMs: number;

@@ -1,31 +1,34 @@
 ---
 name: vibe-security
-description: Security guard and automated remediation skill for AI-generated code. Scans projects across frontend, backend, database, network, cicd, and observability layers, detects vulnerabilities, and safely plans and applies auto-fixes.
+description: Security guard, lint quality checker, and automated remediation skill for AI-generated code. Scans projects across frontend, backend, database, network, cicd, observability, and lint layers, detects vulnerabilities, and safely plans and applies auto-fixes.
 ---
 
 # Vibe Security - Agent Action Protocol (AAP) Skill
 
-This skill guides AI agents (Antigravity, Gemini CLI, Claude Code, Cursor, Copilot) in auditing codebases, detecting security vulnerabilities, explaining risks, and safely remediating issues using the Vibe Security engine.
+This skill guides AI agents (Antigravity, Gemini CLI, Claude Code, Cursor, Copilot) in auditing codebases, detecting security vulnerabilities, checking language quality/lint errors, and safely remediating issues using the Vibe Security engine.
 
 ## Agent Action Protocol (AAP) Workflow
 
-When performing security audits or reviewing AI-generated code, follow this 5-stage loop:
+When performing security audits, reviewing AI-generated code, or running `/securityCheck`, follow this 5-stage loop:
 
 ```mermaid
 graph TD
-    A[1. Scan & Profile] --> B[2. Triage & Classify]
+    A[1. Scan & Scope] --> B[2. Triage & Classify]
     B --> C[3. Plan & Preview Fix]
     C --> D[4. Safe Apply]
     D --> E[5. Verify & Report]
 ```
 
-### Stage 1: Scan & Profile
-- Run `scan_project` via MCP or `vibe-security scan .` via CLI.
-- Detect project primary language and active frameworks (e.g. Next.js, Express, Django).
-- If scanning after recent changes, pass `baselinePath: ".vibe-security-baseline.json"` to focus solely on newly introduced findings.
+### Stage 1: Scan & Scope
+- **General Scan:** Call `scan_project({ rootDir: "." })`.
+- **Targeted Directory Scan:** If the user mentions a specific directory or folder (e.g. `src/api` or `frontend`), call `scan_project({ rootDir: ".", targetPath: "src/api" })`.
+- **Detailed Scan:** For deep analysis with elevated finding limits, call `scan_project({ rootDir: ".", detailed: true })`.
+- **Lint / Code Quality:** To check language-specific anti-patterns (empty catch, floating promises, type bypasses, syntax errors), include `layers: ["lint"]`.
 
 ### Stage 2: Triage & Classify
-- Sort findings by severity: `CRITICAL` -> `HIGH` -> `MEDIUM` -> `LOW` -> `INFO`.
+- Group findings into:
+  - 🛡️ **Security Vulnerabilities** (`CRITICAL` -> `HIGH` -> `MEDIUM` -> `LOW` -> `INFO`)
+  - 🧹 **Language & Lint Quality Issues** (`LINT-001` - `LINT-005`)
 - Identify findings that are marked as auto-fixable (`fix` present).
 - For complex vulnerabilities, inspect detailed threat models and remediation guides using `get_rule_detail(ruleId)`.
 
@@ -37,12 +40,12 @@ graph TD
 
 ### Stage 4: Safe Apply
 - Once verified or approved, call `apply_fix` with `dryRun: false` (or `vibe-security scan . --fix`).
-- Limit fixes to specific rules or files using `ruleIds: ["FE-001"]` or `file: "src/api/auth.ts"`.
+- Limit fixes to specific rules or files using `ruleIds: ["FE-001", "LINT-001"]` or `file: "src/api/auth.ts"`.
 
 ### Stage 5: Verify & Report
 - Re-run `scan_file` or `scan_project` to ensure:
-  1. The target vulnerability is resolved.
-  2. No regression or new finding was introduced.
+  1. Target vulnerabilities and lint issues are resolved.
+  2. No regressions were introduced.
 - Confirm `Security.md` has been updated with the latest audit summary.
 
 ---
@@ -51,7 +54,7 @@ graph TD
 
 | MCP Tool | Purpose | Key Arguments |
 | :--- | :--- | :--- |
-| `scan_project` | Full project vulnerability scan | `rootDir`, `layers`, `languages`, `ruleIds`, `baselinePath`, `includeFixes` |
+| `scan_project` | Full project or targeted folder scan | `rootDir`, `targetPath`, `detailed`, `layers`, `languages`, `ruleIds`, `baselinePath`, `includeFixes` |
 | `scan_file` | Single file fast check | `filePath`, `layers`, `ruleIds` |
 | `list_rules` | List available rules and layers | `layer` |
 | `get_rule_detail` | Detailed remediation & threat specs | `ruleId` |
@@ -64,6 +67,15 @@ graph TD
 ```bash
 # Scan full project (generates Security.md)
 vibe-security scan .
+
+# Scan specific folder (e.g. backend api)
+vibe-security scan src/api/
+
+# Detailed deep scan with elevated limits
+vibe-security scan . --detailed
+
+# Scan language quality & lint rules
+vibe-security scan . --lint
 
 # Preview automated fixes without modifying disk
 vibe-security scan . --fix --dry-run

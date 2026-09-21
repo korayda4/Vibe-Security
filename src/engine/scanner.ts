@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { detectLanguage, buildProjectProfile } from './language.js';
 import { walkProject, type WalkedFile } from './walker.js';
 import { getRulesForLanguage, type RegisteredRule } from './rules/index.js';
@@ -15,7 +16,15 @@ import type {
 import { loadConfig, applyConfig, type AiSecurityConfig } from './config.js';
 import { detectFrameworks } from './language.js';
 
-const ALL_LAYERS: readonly Layer[] = ['frontend', 'backend', 'network', 'database', 'cicd', 'observability'];
+const ALL_LAYERS: readonly Layer[] = [
+  'frontend',
+  'backend',
+  'network',
+  'database',
+  'cicd',
+  'observability',
+  'lint',
+];
 const PER_FILE_FINDING_CAP = 50;
 const GLOBAL_FINDING_CAP = 5000;
 
@@ -41,16 +50,28 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
     if (v.severity) severityOverrides.set(id, v.severity);
   }
 
-  const files = await walkProject({
+  const allFiles = await walkProject({
     rootDir,
     ignore: effective.ignore,
   });
+
+  const targetAbs = options.targetPath ? path.resolve(rootDir, options.targetPath) : undefined;
+  const files = targetAbs
+    ? allFiles.filter((f) => {
+        const normTarget = targetAbs.split(path.sep).join('/');
+        const normFile = f.absolutePath.split(path.sep).join('/');
+        return (
+          normFile === normTarget ||
+          normFile.startsWith(normTarget.endsWith('/') ? normTarget : normTarget + '/')
+        );
+      })
+    : allFiles;
 
   const rulesEvaluated = new Set<string>();
   const findings: Finding[] = [];
   const errors: ScanError[] = [];
   const applicableRules = new Set<string>();
-  const maxPerFile = options.maxMatchesPerFile ?? PER_FILE_FINDING_CAP;
+  const maxPerFile = options.maxMatchesPerFile ?? (options.detailed ? 200 : PER_FILE_FINDING_CAP);
   const sourcesForProfile: Array<{ relativePath: string; source?: string }> = [];
 
   for (const file of files) {
@@ -130,6 +151,8 @@ export async function scan(options: ScanOptions): Promise<ScanResult> {
 
   return {
     rootDir,
+    targetPath: options.targetPath,
+    detailed: options.detailed,
     startedAt: startedAt.toISOString(),
     finishedAt: finishedAt.toISOString(),
     durationMs: finishedAt.getTime() - startedAt.getTime(),
@@ -161,6 +184,7 @@ export function summarize(findings: readonly Finding[]): ScanSummary {
     database: 0,
     cicd: 0,
     observability: 0,
+    lint: 0,
   };
   for (const f of findings) {
     bySeverity[f.severity]++;

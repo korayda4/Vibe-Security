@@ -512,3 +512,119 @@ test('BE-004 false positive prevention: benign MongoDB queries are not flagged a
   assert.equal(benignMongoFindings.length, 0, 'Benign Mongo query using $gt/$lt/$ne must NOT be flagged as SQL injection');
 });
 
+test('targetPath scans only files within the targeted folder', async () => {
+  const fullScan = await scan({ rootDir: FIXTURE_DIR });
+  const targetedScan = await scan({ rootDir: FIXTURE_DIR, targetPath: 'src' });
+
+  assert.ok(targetedScan.filesScanned > 0, 'should scan files in src');
+  assert.ok(targetedScan.filesScanned < fullScan.filesScanned, 'targeted scan should scan fewer files than full scan');
+  assert.ok(
+    targetedScan.findings.every((f) => f.file.startsWith('src/')),
+    'all findings must originate from files within targetPath'
+  );
+});
+
+test('detailed mode enables deep scan and includes target metadata', async () => {
+  const result = await scan({
+    rootDir: FIXTURE_DIR,
+    targetPath: 'src',
+    detailed: true,
+  });
+
+  assert.equal(result.detailed, true);
+  assert.equal(result.targetPath, 'src');
+  assert.ok(result.findings.length > 0);
+});
+
+test('LINT-001 detects empty catch and swallowed exceptions with auto-fix', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('LINT-001')!;
+
+  const jsFindings = rule.check({
+    filePath: 'service.ts',
+    relativePath: 'service.ts',
+    language: 'typescript',
+    source: 'try { doCriticalAuth(); } catch (e) {}',
+    lines: ['try { doCriticalAuth(); } catch (e) {}'],
+  });
+  assert.ok(jsFindings.length > 0, 'LINT-001 should detect empty catch in TypeScript');
+  assert.ok(jsFindings[0].fix, 'LINT-001 should provide auto-fix patch');
+
+  const pyFindings = rule.check({
+    filePath: 'worker.py',
+    relativePath: 'worker.py',
+    language: 'python',
+    source: 'try:\n    validate_token()\nexcept Exception:\n    pass\n',
+    lines: ['try:', '    validate_token()', 'except Exception:', '    pass'],
+  });
+  assert.ok(pyFindings.length > 0, 'LINT-001 should detect empty except: pass in Python');
+});
+
+test('LINT-002 detects floating promise calls', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('LINT-002')!;
+
+  const findings = rule.check({
+    filePath: 'user.ts',
+    relativePath: 'user.ts',
+    language: 'typescript',
+    source: 'export function handle() {\n  prisma.user.update({ where: { id: 1 }, data: { role: "admin" } });\n}',
+    lines: ['export function handle() {', '  prisma.user.update({ where: { id: 1 }, data: { role: "admin" } });', '}'],
+  });
+  assert.ok(findings.length > 0, 'LINT-002 should detect unawaited database call');
+  assert.ok(findings[0].fix, 'LINT-002 should propose prepending await');
+});
+
+test('LINT-003 detects type-safety suppression (@ts-ignore and as any)', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('LINT-003')!;
+
+  const findings = rule.check({
+    filePath: 'auth.ts',
+    relativePath: 'auth.ts',
+    language: 'typescript',
+    source: '// @ts-ignore\nconst user = token as any;',
+    lines: ['// @ts-ignore', 'const user = token as any;'],
+  });
+  assert.equal(findings.length, 2, 'LINT-003 should detect both @ts-ignore and as any');
+});
+
+test('LINT-004 detects malformed JSON syntax errors', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('LINT-004')!;
+
+  const validFindings = rule.check({
+    filePath: 'config.json',
+    relativePath: 'config.json',
+    language: 'json',
+    source: '{\n  "name": "valid",\n  "count": 10\n}',
+    lines: ['{', '  "name": "valid",', '  "count": 10', '}'],
+  });
+  assert.equal(validFindings.length, 0, 'valid JSON should have no findings');
+
+  const invalidFindings = rule.check({
+    filePath: 'broken.json',
+    relativePath: 'broken.json',
+    language: 'json',
+    source: '{\n  "name": "trailing",\n  "count": 10,\n}',
+    lines: ['{', '  "name": "trailing",', '  "count": 10,', '}'],
+  });
+  assert.ok(invalidFindings.length > 0, 'invalid JSON with trailing comma should be caught');
+  assert.ok(invalidFindings[0].description.includes('JSON Syntax Error') || invalidFindings[0].description.includes('Invalid JSON'));
+});
+
+test('LINT-005 detects unclosed Python file descriptors', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('LINT-005')!;
+
+  const findings = rule.check({
+    filePath: 'script.py',
+    relativePath: 'script.py',
+    language: 'python',
+    source: 'f = open("/tmp/secret.txt")\ncontent = f.read()\n',
+    lines: ['f = open("/tmp/secret.txt")', 'content = f.read()'],
+  });
+  assert.ok(findings.length > 0, 'LINT-005 should detect open() without with context manager');
+});
+
+
