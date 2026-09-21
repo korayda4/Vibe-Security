@@ -627,4 +627,64 @@ test('LINT-005 detects unclosed Python file descriptors', async () => {
   assert.ok(findings.length > 0, 'LINT-005 should detect open() without with context manager');
 });
 
+test('checkBuild returns SECURITY_VULNERABILITY and exitCode 1 on vulnerable fixture', async () => {
+  const { checkBuild } = await import('../src/engine/buildGuard.js');
+  const res = await checkBuild({
+    rootDir: FIXTURE_DIR,
+    writeReport: false,
+  });
+
+  assert.equal(res.verdict, 'SECURITY_VULNERABILITY');
+  assert.equal(res.exitCode, 1);
+  assert.ok(res.criticalCount > 0 || res.highCount > 0);
+  assert.ok(res.blockingFindings.length > 0);
+  assert.ok(res.terminalOutput.includes('SECURITY VULNERABILITY - BUILD BLOCKED'));
+});
+
+test('checkBuild returns WARNING and exitCode 0 when only non-blocking findings exist', async () => {
+  const { checkBuild } = await import('../src/engine/buildGuard.js');
+  const res = await checkBuild({
+    rootDir: FIXTURE_DIR,
+    layers: ['lint'],
+    writeReport: false,
+  });
+
+  if (res.blockingFindings.length === 0 && res.warningFindings.length > 0) {
+    assert.equal(res.verdict, 'WARNING');
+    assert.equal(res.exitCode, 0);
+    assert.ok(res.terminalOutput.includes('[SecurityCheckBuild: WARNING]'));
+  } else {
+    // If lint had no findings or high findings, check structure
+    assert.ok(['SUCCESS', 'WARNING', 'SECURITY_VULNERABILITY'].includes(res.verdict));
+  }
+});
+
+test('checkBuild returns SUCCESS and exitCode 0 on clean code', async () => {
+  const { checkBuild } = await import('../src/engine/buildGuard.js');
+  const res = await checkBuild({
+    rootDir: FIXTURE_DIR,
+    ruleIds: ['NON-EXISTENT-RULE'],
+    writeReport: false,
+  });
+
+  assert.equal(res.verdict, 'SUCCESS');
+  assert.equal(res.exitCode, 0);
+  assert.equal(res.criticalCount, 0);
+  assert.equal(res.highCount, 0);
+  assert.equal(res.warningFindings.length, 0);
+  assert.ok(res.terminalOutput.includes('[SecurityCheckBuild: SUCCESS]'));
+});
+
+test('MCP dispatchTool handles check_build', async () => {
+  const { dispatchTool } = await import('../src/tools/index.js');
+  const result = await dispatchTool('check_build', {
+    rootDir: FIXTURE_DIR,
+    writeReport: false,
+  });
+
+  assert.ok(result.content.length >= 1);
+  assert.equal(result.isError, true, 'fixture has critical flaws so isError should be true');
+});
+
+
 

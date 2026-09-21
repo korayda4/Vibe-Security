@@ -8,6 +8,7 @@ import {
   handleGetRuleDetail,
 } from './ruleTools.js';
 import { applyFixToolDefinition, handleApplyFix } from './applyFix.js';
+import { checkBuildToolDefinition, handleCheckBuild } from './checkBuildTool.js';
 
 export const allTools = [
   scanProjectToolDefinition,
@@ -15,6 +16,7 @@ export const allTools = [
   listRulesToolDefinition,
   getRuleDetailToolDefinition,
   applyFixToolDefinition,
+  checkBuildToolDefinition,
 ];
 
 export async function dispatchTool(
@@ -32,6 +34,9 @@ export async function dispatchTool(
       return handleGetRuleDetail(args);
     case 'apply_fix':
       return handleApplyFix(args);
+    case 'check_build':
+    case 'security_check_build':
+      return handleCheckBuild(args);
     default:
       return {
         content: [{ type: 'text', text: `Unknown tool: ${name}` }],

@@ -44,5 +44,9 @@ export type { AiSecurityConfig } from './engine/config.js';
 // MCP Server
 export { server, startServer } from './server.js';
 
+// Build Guard (Automated Build Gate)
+export { checkBuild } from './engine/buildGuard.js';
+export type { BuildVerdict, BuildCheckOptions, BuildCheckResult } from './engine/buildGuard.js';
+
 // Type definitions
 export * from './types.js';

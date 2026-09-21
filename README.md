@@ -1,8 +1,8 @@
 # Vibe Security
 
-**Stable release: `1.2.0`**
+**Stable release: `1.3.0`**
 
-> **The security guard for Vibe Coded projects.** Every line of AI-generated Frontend or Backend code is planned, tested, and scanned across all layers and languages. Auto-fix patches included for the most common mistakes.
+> **The security guard for Vibe Coded projects.** Every line of AI-generated Frontend or Backend code is planned, tested, and scanned across all layers and languages. Auto-fix patches included for the most common mistakes. Built-in 3-tier pre-build gate halts builds on critical flaws.
 
 [![npm](https://img.shields.io/npm/v/%40korayda4%2Fvibe-security?style=flat-square)](https://www.npmjs.com/package/@korayda4/vibe-security)
 [![MCP](https://img.shields.io/badge/MCP-stdio-blue?style=flat-square)](https://modelcontextprotocol.io)
@@ -126,30 +126,26 @@ Vibe Security scans every Backend angle:
 ## How it works in a Vibe Coded project
 
 ```
-User writes code with Claude
+Geliştirici / AI Build Alır (npm run build)
     │
     ▼
-AI invokes /securityCheck  ──►  Vibe Security MCP server
+"prebuild": "vibe-security check-build" ──► Pre-Build Gatekeeper
     │
-    ▼
-1. PLAN  — detect languages, frameworks, project profile
-    │
-    ▼
-2. TEST  — apply 36 rules across 6 layers (Frontend, Backend,
-          Network, Database, CI/CD, Observability)
-    │
-    ▼
-3. FIND  — 36 known vulnerability patterns
-    │
-    ▼
-4. EXPLAIN — CWE + OWASP + threat model + remediation steps
-    │
-    ▼
-5. FIX  — auto-patch for 3 rules; guidance for the rest
-    │
-    ▼
-Security.md written to your project root (not in this repo)
+    ├─► [SUCCESS]                0 açık ──► Build başarıyla devam eder (Exit 0)
+    ├─► [WARNING]   Medium / Low / Lint ──► Uyarılar listelenir, build devam eder (Exit 0)
+    └─► [SECURITY_VULNERABILITY]  Crit/High ──► BUILD ENGELLENİR! (Exit 1)
+                                                 │
+                                                 ▼
+               /securityCheck veya npx vibe-security scan . --fix
+               (Araştırma, detaylı klasör taraması, AAP ile otomatik düzeltme)
 ```
+
+### Pre-Build Gate vs. Interactive Scan
+
+| Workflow | Command | Purpose |
+|---|---|---|
+| **SecurityCheckBuild** | `vibe-security check-build [path]` | Pre-build otomasyonu: 3 aşamalı karar (Success, Warning, Security Vulnerability). Kritik/yüksek açık varsa build'i durdurur. |
+| **SecurityCheck** | `vibe-security scan [path] [options]` | Detaylı araştırma, klasör hedefleme (`--dir`), lint kontrolleri (`--lint`) ve otomatik onarımlar (`--fix`). |
 
 ---
 

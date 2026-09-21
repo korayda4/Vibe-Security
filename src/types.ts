@@ -163,3 +163,26 @@ export interface ScanSummary {
   readonly bySeverity: Record<Severity, number>;
   readonly byLayer: Record<Layer, number>;
 }
+
+export type BuildVerdict = 'SUCCESS' | 'WARNING' | 'SECURITY_VULNERABILITY';
+
+export interface BuildCheckOptions extends ScanOptions {
+  readonly blockSeverities?: readonly Severity[];
+  readonly writeReport?: boolean;
+  readonly reportPath?: string;
+}
+
+export interface BuildCheckResult {
+  readonly verdict: BuildVerdict;
+  readonly exitCode: number;
+  readonly scanResult: ScanResult;
+  readonly summary: ScanSummary;
+  readonly criticalCount: number;
+  readonly highCount: number;
+  readonly warningCount: number;
+  readonly blockingFindings: readonly Finding[];
+  readonly warningFindings: readonly Finding[];
+  readonly reportPath?: string;
+  readonly terminalOutput: string;
+}
+

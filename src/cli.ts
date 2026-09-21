@@ -33,7 +33,7 @@ interface CliArgs {
 
 function parseArgs(argv: readonly string[]): CliArgs {
   const args = argv.slice(2);
-  const knownCommands = new Set(['scan', 'list', 'rules', 'init', 'baseline']);
+  const knownCommands = new Set(['scan', 'list', 'rules', 'init', 'baseline', 'check-build', 'securityCheckBuild']);
   const hasCommand = knownCommands.has(args[0] ?? '');
   const out: CliArgs = {
     cmd: hasCommand ? args[0] : 'scan',
@@ -122,17 +122,19 @@ function printHelp(): void {
 
 Usage:
   vibe-security scan [path] [options]
+  vibe-security check-build [path] [options]     # Pre-build gate checking 3-tier verdict
+  vibe-security securityCheckBuild [path]        # Alias for check-build
   vibe-security list
   vibe-security init
   vibe-security baseline update [path]
 
-Scan options:
+Scan / Check-Build options:
   --dir, --path <path>                           Target specific directory or file (relative to root)
   --detailed, -d                                 Run comprehensive deep scan with elevated limits
   --lint                                         Include or focus on language quality and syntax lint rules
   --format <markdown|json|sarif|junit|compact>   Output format (default: markdown)
-  --output, -o <path>                            Output file path
-  --fix                                          Apply auto-fixes
+  --output, -o <path>                            Output file path (default: Security.md)
+  --fix                                          Apply auto-fixes (scan command)
   --dry-run                                      Preview auto-fixes without writing
   --baseline <path>                              Show only new findings vs baseline
   --update-baseline                              Write current findings to baseline
@@ -142,11 +144,12 @@ Scan options:
   --no-fail                                      Exit 0 even with findings
 
 Examples:
+  vibe-security check-build .                    # Fast 3-stage pre-build gate (blocks on critical/high)
   vibe-security scan . --detailed
   vibe-security scan src/api/ --format sarif
   vibe-security scan src/ --fix --dry-run
   vibe-security scan . --baseline .vibe-security-baseline.json
-  vibe-security init    # Create .vibe-security.json, slash commands, and Agent Skill files
+  vibe-security init                             # Create config, inject "prebuild" hook, and agent skills
 `);
 }
 
@@ -170,6 +173,23 @@ async function cmdInit(rootDir: string): Promise<void> {
   await fs.writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
   console.log(`✅ ${configPath}`);
 
+  // Inject prebuild hook into package.json if it exists
+  const pkgPath = path.join(rootDir, 'package.json');
+  try {
+    const pkgRaw = await fs.readFile(pkgPath, 'utf8');
+    const pkg = JSON.parse(pkgRaw);
+    if (!pkg.scripts) pkg.scripts = {};
+    if (!pkg.scripts.prebuild) {
+      pkg.scripts.prebuild = 'vibe-security check-build';
+      await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+      console.log(`✅ ${pkgPath} (injected "prebuild": "vibe-security check-build")`);
+    } else {
+      console.log(`ℹ️  ${pkgPath} already contains "prebuild" script: "${pkg.scripts.prebuild}"`);
+    }
+  } catch {
+    // No package.json in target directory, skip
+  }
+
   for (const [target, content] of [
     [slashCommandPath, SLASH_COMMAND_CLAUDE],
     [vscodeSettingsPath, VSCODE_SETTINGS],
@@ -183,11 +203,12 @@ async function cmdInit(rootDir: string): Promise<void> {
   }
 
   console.log('\n👉 Next:');
+  console.log('   • Build Gate: runs automatically via `npm run build` ("prebuild": "vibe-security check-build")');
   console.log('   • Claude Code: type /securityCheck [path] [--detailed]');
   console.log('   • Antigravity / Gemini: .agents/skills/vibe-security skill activated');
   console.log('   • Cursor: .cursor/rules/security.mdc rule activated');
   console.log('   • VS Code: reload window, MCP server will be picked up automatically');
-  console.log('   • CI: add `npx -y vibe-security scan . --format sarif` to your workflow');
+  console.log('   • CI: add `npx -y vibe-security check-build .` or `--format sarif` to your workflow');
 }
 
 async function cmdList(): Promise<void> {
@@ -335,6 +356,33 @@ async function cmdBaseline(args: CliArgs): Promise<number> {
   return 2;
 }
 
+async function cmdCheckBuild(args: CliArgs): Promise<number> {
+  const { checkBuild } = await import('./engine/buildGuard.js');
+  const resolvedTarget = path.resolve(args.target);
+  let rootDir = process.cwd();
+  let targetPath = args.targetPath;
+
+  if (resolvedTarget !== rootDir && !targetPath) {
+    if (resolvedTarget.startsWith(rootDir + path.sep)) {
+      targetPath = path.relative(rootDir, resolvedTarget);
+    } else {
+      rootDir = resolvedTarget;
+    }
+  }
+
+  const result = await checkBuild({
+    rootDir,
+    targetPath,
+    detailed: args.detailed,
+    layers: args.layers as any,
+    ruleIds: args.rules,
+    reportPath: args.output,
+  });
+
+  console.log(result.terminalOutput);
+  return args.noFail ? 0 : result.exitCode;
+}
+
 async function main(): Promise<number> {
   const args = parseArgs(process.argv);
 
@@ -346,6 +394,7 @@ async function main(): Promise<number> {
   if (args.cmd === 'list' || args.cmd === 'rules') return cmdList().then(() => 0);
   if (args.cmd === 'init') return cmdInit(args.target).then(() => 0);
   if (args.cmd === 'baseline') return cmdBaseline(args);
+  if (args.cmd === 'check-build' || args.cmd === 'securityCheckBuild') return cmdCheckBuild(args);
   if (args.cmd === 'scan' || args.cmd === undefined) return cmdScan(args);
 
   console.error(`Unknown command: ${args.cmd}`);
@@ -353,10 +402,14 @@ async function main(): Promise<number> {
   return 2;
 }
 
-main().catch((err) => {
-  console.error('Fatal:', err);
-  process.exit(1);
-});
+main()
+  .then((code) => {
+    process.exit(code);
+  })
+  .catch((err) => {
+    console.error('Fatal:', err);
+    process.exit(1);
+  });
 const SLASH_COMMAND_CLAUDE = `---
 description: Run Vibe Security scan on project or specific directory with security and lint checks
 ---
@@ -415,17 +468,26 @@ When the user runs /securityCheck (with or without arguments):
 
 const AGENT_SKILL_ANTIGRAVITY = `---
 name: vibe-security
-description: Security guard, lint checker, and automated remediation skill for AI-generated code. Scans projects across frontend, backend, database, network, cicd, observability, and lint layers, detects vulnerabilities, and safely applies auto-fixes.
+description: Security guard, lint checker, pre-build gatekeeper, and automated remediation skill for AI-generated code. Scans projects across frontend, backend, database, network, cicd, observability, and lint layers, blocks builds on critical/high flaws, and safely applies auto-fixes.
 ---
 
 # Vibe Security - Agent Action Protocol (AAP) Skill
 
-When performing security audits or code quality reviews:
-1. **General Scan:** Call \`scan_project({ rootDir: "." })\`.
-2. **Targeted Folder Scan:** Call \`scan_project({ rootDir: ".", targetPath: "path/to/folder" })\`.
-3. **Detailed Scan:** Call \`scan_project({ rootDir: ".", detailed: true })\` for deep limits and full context.
-4. **Remediation:** For auto-fixable findings, call \`apply_fix({ dryRun: true })\` to review the unified diff, then \`apply_fix({ dryRun: false })\` to apply.
-5. Check \`Security.md\` for complete audit documentation.
+## Workflows:
+1. **Pre-Build Gate (/securityCheckBuild):**
+   - Call \`check_build({ rootDir: "." })\` before building or releasing.
+   - Evaluates 3-tier verdict:
+     - \`SUCCESS\` -> proceed with build.
+     - \`WARNING\` -> non-blocking warnings detected (medium/low/lint), review warnings and proceed.
+     - \`SECURITY_VULNERABILITY\` -> Critical/High flaws detected, BUILD IS HALTED. Auto-remediate flaws before building.
+2. **Interactive Audit & Explore (/securityCheck):**
+   - General Scan: \`scan_project({ rootDir: "." })\`.
+   - Targeted Folder: \`scan_project({ rootDir: ".", targetPath: "path/to/folder" })\`.
+   - Detailed Deep Scan: \`scan_project({ rootDir: ".", detailed: true })\`.
+3. **Remediation:**
+   - Auto-fixable findings: \`apply_fix({ dryRun: true })\` to review unified diffs, then \`apply_fix({ dryRun: false })\` to apply.
+   - For manual findings: follow the exact \`impact\` and \`remediation\` code examples from findings.
+4. Check \`Security.md\` for complete audit documentation.
 `;
 
 const CURSOR_RULE = `---

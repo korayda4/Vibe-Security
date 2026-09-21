@@ -2,6 +2,20 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.0] — 2026-09-21
+
+### Added
+
+- **Automated Pre-Build Gate (`check-build` / `SecurityCheckBuild`)** — automated pre-build gatekeeper that enforces a 3-tier verdict:
+  - `SUCCESS`: Clean project, 0 blocking flaws (Exit 0, build proceeds).
+  - `WARNING`: Non-blocking issues detected (medium/low/lint) (Exit 0, warnings displayed prominently).
+  - `SECURITY_VULNERABILITY`: Critical or High vulnerabilities found (Exit 1, **build halted**).
+- **Auto-injected `prebuild` Hook** — `vibe-security init` now automatically wires `"prebuild": "vibe-security check-build"` into the host project's `package.json`, preventing unsafe builds out-of-the-box.
+- **`check_build` MCP Tool** — allows AI agents to verify build readiness and self-heal vulnerabilities before triggering deployments.
+- **Dual Workflow Agent Action Protocol (AAP)** — `SKILL.md` updated with strict separation between automated build gating (`SecurityCheckBuild`) and interactive research/remediation (`SecurityCheck`).
+- **Language Quality & Lint Rules (`LINT-001` - `LINT-005`)** — detects empty catch blocks, floating promises, TypeScript `any` bypasses, and common syntax traps across frontend and backend code.
+- **Target Folder & Detailed Scanning** — `--dir` / `--path` and `--detailed` options for surgical, component-level scanning.
+
 ## [1.2.0] — 2026-09-21
 
 ### Added
