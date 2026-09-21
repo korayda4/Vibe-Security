@@ -203,14 +203,34 @@ function renderTerminalOutput(params: {
     }
     lines.push('• Status: No Critical or High vulnerabilities. Build proceeding with warnings.');
     lines.push('');
-    lines.push('Top Warnings:');
-    for (const f of warningFindings.slice(0, 5)) {
-      lines.push(`  [${f.severity.toUpperCase()}] [${f.ruleId}] ${f.file}:${f.match.line} - ${f.title}`);
+    lines.push('⚠️  Affected Files & Severity Breakdown:');
+
+    // Group warnings by file
+    const byFile = new Map<string, Finding[]>();
+    for (const f of warningFindings) {
+      const arr = byFile.get(f.file) ?? [];
+      arr.push(f);
+      byFile.set(f.file, arr);
     }
-    if (warningFindings.length > 5) {
-      lines.push(`  ...and ${warningFindings.length - 5} more warnings.`);
+
+    for (const [file, fList] of byFile.entries()) {
+      const sevCounts = fList.reduce((acc, curr) => {
+        acc[curr.severity] = (acc[curr.severity] ?? 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const sevSummary = Object.entries(sevCounts)
+        .map(([s, c]) => `${s.toUpperCase()}: ${c}`)
+        .join(', ');
+
+      lines.push(`  📁 ${file} (${sevSummary})`);
+      for (const f of fList) {
+        const badge = f.severity === 'medium' ? '🟠 [MEDIUM]' : f.severity === 'low' ? '🟡 [LOW]' : '🔵 [INFO]';
+        lines.push(`     ${badge} Line ${f.match.line} [\`${f.ruleId}\`] ${f.title}`);
+      }
+      lines.push('');
     }
-    lines.push('');
+
     lines.push(`💡 Run 'npx vibe-security scan .' or '/securityCheck' to inspect & clean up warnings.`);
     if (reportPath) lines.push(`📝 Full details written to: ${reportPath}`);
     lines.push(hr);
@@ -221,17 +241,39 @@ function renderTerminalOutput(params: {
     lines.push(`❌ BUILD HALTED: Found ${criticalCount} Critical and ${highCount} High vulnerabilities!`);
     lines.push('Production build is blocked to prevent deploying security flaws.');
     lines.push('');
-    lines.push('Blocking Flaws:');
+    lines.push('🚨 Blocking Vulnerabilities by File & Severity:');
+
+    // Group blocking findings by file
+    const byFile = new Map<string, Finding[]>();
     for (const f of blockingFindings) {
-      lines.push(`  🔴 [${f.severity.toUpperCase()}] [\`${f.ruleId}\`] ${f.file}:${f.match.line}`);
-      lines.push(`     Title: ${f.title}`);
-      lines.push(`     Threat: ${f.impact}`);
-      lines.push(`     Action: ${f.remediation.split('\n')[0]}`);
-      if (f.fix) {
-        lines.push(`     🔧 Auto-fixable: ${f.fix.description}`);
+      const arr = byFile.get(f.file) ?? [];
+      arr.push(f);
+      byFile.set(f.file, arr);
+    }
+
+    for (const [file, fList] of byFile.entries()) {
+      const sevCounts = fList.reduce((acc, curr) => {
+        acc[curr.severity] = (acc[curr.severity] ?? 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const sevSummary = Object.entries(sevCounts)
+        .map(([s, c]) => `${s.toUpperCase()}: ${c}`)
+        .join(', ');
+
+      lines.push(`  📁 ${file} (${sevSummary})`);
+      for (const f of fList) {
+        const badge = f.severity === 'critical' ? '🟣 [CRITICAL]' : '🔴 [HIGH]';
+        lines.push(`     ${badge} Line ${f.match.line} [\`${f.ruleId}\`] ${f.title}`);
+        lines.push(`        Threat: ${f.impact}`);
+        lines.push(`        Action: ${f.remediation.split('\n')[0]}`);
+        if (f.fix) {
+          lines.push(`        🔧 Auto-fixable: ${f.fix.description}`);
+        }
       }
       lines.push('');
     }
+
     lines.push('To unblock the build:');
     lines.push('  1) Run `npx vibe-security check-build . --fix` to auto-apply security patches.');
     lines.push('  2) Or run `/securityCheck --fix` in your AI coding assistant to auto-remediate.');

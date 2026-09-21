@@ -2,6 +2,13 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.2] — 2026-09-21
+
+### Added
+
+- **File & Severity Breakdown in Pre-Build Gate** — in both `WARNING` and `SECURITY_VULNERABILITY` verdicts, the build guard now groups findings by file with explicit severity indicators (`[CRITICAL]`, `[HIGH]`, `[MEDIUM]`, `[LOW]`, `[INFO]`), giving developers and agents immediate file-level visibility.
+- **Structured Warning Payloads for MCP** — `check_build` tool now delivers structured `warningFindings` alongside blocking findings for AI agents to inspect and address non-blocking issues.
+
 ## [1.3.1] — 2026-09-21
 
 ### Added

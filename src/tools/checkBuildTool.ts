@@ -103,6 +103,14 @@ export async function handleCheckBuild(
         impact: f.impact,
         fixable: Boolean(f.fix),
       })),
+      warningFindings: result.warningFindings.map((f) => ({
+        id: f.id,
+        ruleId: f.ruleId,
+        severity: f.severity,
+        file: f.file,
+        line: f.match.line,
+        title: f.title,
+      })),
     };
 
     return {
