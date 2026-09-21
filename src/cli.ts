@@ -76,6 +76,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
         i++;
         break;
       case '--fix':
+      case '--auto-patch':
         out.fix = true;
         break;
       case '--dry-run':
@@ -180,9 +181,9 @@ async function cmdInit(rootDir: string): Promise<void> {
     const pkg = JSON.parse(pkgRaw);
     if (!pkg.scripts) pkg.scripts = {};
     if (!pkg.scripts.prebuild) {
-      pkg.scripts.prebuild = 'vibe-security check-build';
+      pkg.scripts.prebuild = 'vibe-security check-build --fix';
       await fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
-      console.log(`✅ ${pkgPath} (injected "prebuild": "vibe-security check-build")`);
+      console.log(`✅ ${pkgPath} (injected "prebuild": "vibe-security check-build --fix")`);
     } else {
       console.log(`ℹ️  ${pkgPath} already contains "prebuild" script: "${pkg.scripts.prebuild}"`);
     }
@@ -377,6 +378,8 @@ async function cmdCheckBuild(args: CliArgs): Promise<number> {
     layers: args.layers as any,
     ruleIds: args.rules,
     reportPath: args.output,
+    fix: args.fix,
+    dryRun: args.dryRun,
   });
 
   console.log(result.terminalOutput);

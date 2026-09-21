@@ -47,9 +47,10 @@ Whenever a project build or packaging action is initiated (e.g. `npm run build`,
 | **`SECURITY_VULNERABILITY`** | 1+ Critical or High security vulnerabilities found | `1` | **BUILD IS HALTED**. Terminal and `Security.md` display exact files, lines, and impact. |
 
 ### How to Execute:
-- **As AI Agent:** Call MCP tool `check_build({ rootDir: "." })`.
-  - If `verdict === 'SECURITY_VULNERABILITY'`: Stop build execution immediately, inform the user, and switch to `SecurityCheck` remediation mode.
-- **In Shell / CI:** Run `npx vibe-security check-build .` (automatically wired as `"prebuild"` in `package.json` upon `vibe-security init`).
+- **As AI Agent:** Call MCP tool `check_build({ rootDir: ".", fix: true })`.
+  - With `fix: true`: Automatically applies available patches for fixable vulnerabilities on-the-fly. If all blocking flaws are resolved, the verdict becomes `SUCCESS` or `WARNING`, and the build proceeds smoothly!
+  - If `verdict === 'SECURITY_VULNERABILITY'`: Halts build immediately, displays unpatched flaws, and switches to `SecurityCheck` remediation mode.
+- **In Shell / CI:** Run `npx vibe-security check-build . --fix` (automatically configured as `"prebuild": "vibe-security check-build --fix"` in `package.json` upon `vibe-security init`).
 
 ---
 

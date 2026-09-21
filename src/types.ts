@@ -170,6 +170,9 @@ export interface BuildCheckOptions extends ScanOptions {
   readonly blockSeverities?: readonly Severity[];
   readonly writeReport?: boolean;
   readonly reportPath?: string;
+  readonly fix?: boolean;
+  readonly autoPatch?: boolean;
+  readonly dryRun?: boolean;
 }
 
 export interface BuildCheckResult {
@@ -184,5 +187,7 @@ export interface BuildCheckResult {
   readonly warningFindings: readonly Finding[];
   readonly reportPath?: string;
   readonly terminalOutput: string;
+  readonly appliedFixes?: readonly { readonly file: string; readonly ruleId: string; readonly description: string }[];
+  readonly fixSummary?: string;
 }
 

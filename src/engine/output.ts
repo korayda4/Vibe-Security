@@ -71,7 +71,7 @@ export function toSarif(result: ScanResult): unknown {
         tool: {
           driver: {
             name: 'Vibe Security',
-            version: '1.3.0',
+            version: '1.3.1',
             informationUri: 'https://github.com/korayda4/Vibe-Security',
             rules: sarifRules,
           },

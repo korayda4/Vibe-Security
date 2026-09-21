@@ -62,12 +62,22 @@ export async function walkProject(options: WalkOptions): Promise<readonly Walked
       if (results.length >= maxFiles) return;
 
       const name = entry.name;
-      if (userIgnore.has(name) || userIgnore.has(`**/${name}`) || userIgnore.has(`**/${name}/**`)) {
-        continue;
-      }
-
       const full = path.join(dir, name);
       const rel = path.relative(rootDir, full);
+      const normRel = rel.split(path.sep).join('/');
+
+      if (
+        userIgnore.has(name) ||
+        userIgnore.has(normRel) ||
+        userIgnore.has(`**/${name}`) ||
+        userIgnore.has(`**/${name}/**`) ||
+        Array.from(userIgnore).some((p) => {
+          const normP = p.split(path.sep).join('/');
+          return normRel === normP || normRel.startsWith(normP.endsWith('/') ? normP : normP + '/');
+        })
+      ) {
+        continue;
+      }
 
       if (entry.isDirectory()) {
         if (

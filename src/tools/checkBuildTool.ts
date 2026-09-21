@@ -39,6 +39,16 @@ export const checkBuildToolDefinition = {
         },
         description: 'Severities that block the build (default: ["critical", "high"])',
       },
+      fix: {
+        type: 'boolean',
+        description: 'Automatically apply patches for fixable vulnerabilities on the fly to unblock the build',
+        default: false,
+      },
+      dryRun: {
+        type: 'boolean',
+        description: 'Preview auto-fixes without writing changes to disk',
+        default: false,
+      },
     },
   },
 };
@@ -52,6 +62,8 @@ export async function handleCheckBuild(
     const detailed = typeof rawArgs.detailed === 'boolean' ? rawArgs.detailed : true;
     const writeReport = typeof rawArgs.writeReport === 'boolean' ? rawArgs.writeReport : true;
     const reportPath = typeof rawArgs.reportPath === 'string' ? rawArgs.reportPath : undefined;
+    const fix = Boolean(rawArgs.fix || rawArgs.autoPatch);
+    const dryRun = Boolean(rawArgs.dryRun);
     const blockSeverities = Array.isArray(rawArgs.blockSeverities)
       ? (rawArgs.blockSeverities as Severity[])
       : undefined;
@@ -63,6 +75,8 @@ export async function handleCheckBuild(
       writeReport,
       reportPath,
       blockSeverities,
+      fix,
+      dryRun,
     });
 
     const isBlocked = result.verdict === 'SECURITY_VULNERABILITY';
@@ -76,6 +90,8 @@ export async function handleCheckBuild(
       warningCount: result.warningCount,
       totalFindings: result.scanResult.findings.length,
       reportPath: result.reportPath,
+      appliedFixes: result.appliedFixes,
+      fixSummary: result.fixSummary,
       blockingCount: result.blockingFindings.length,
       blockingFindings: result.blockingFindings.map((f) => ({
         id: f.id,

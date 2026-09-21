@@ -1,8 +1,8 @@
 # Vibe Security
 
-**Stable release: `1.3.0`**
+**Stable release: `1.3.1`**
 
-> **The security guard for Vibe Coded projects.** Every line of AI-generated Frontend or Backend code is planned, tested, and scanned across all layers and languages. Auto-fix patches included for the most common mistakes. Built-in 3-tier pre-build gate halts builds on critical flaws.
+> **The security guard for Vibe Coded projects.** Every line of AI-generated Frontend or Backend code is planned, tested, and scanned across all layers and languages. Auto-fix patches included for the most common mistakes. Built-in 3-tier pre-build gate with on-the-fly auto-patching heals vulnerabilities to keep builds moving.
 
 [![npm](https://img.shields.io/npm/v/%40korayda4%2Fvibe-security?style=flat-square)](https://www.npmjs.com/package/@korayda4/vibe-security)
 [![MCP](https://img.shields.io/badge/MCP-stdio-blue?style=flat-square)](https://modelcontextprotocol.io)

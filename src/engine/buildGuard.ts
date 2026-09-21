@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { scan } from './scanner.js';
 import { writeSecurityReport } from './reporter.js';
+import { applyFixes, formatFixSummary } from './fixer.js';
+import { loadConfig } from './config.js';
 import type {
   Finding,
   ScanOptions,
@@ -19,17 +21,55 @@ const DEFAULT_BLOCK_SEVERITIES: readonly Severity[] = ['critical', 'high'];
 export async function checkBuild(options: BuildCheckOptions = {}): Promise<BuildCheckResult> {
   const rootDir = options.rootDir ?? process.cwd();
   const blockSeverities = new Set(options.blockSeverities ?? DEFAULT_BLOCK_SEVERITIES);
+  const shouldFix = Boolean(options.fix || options.autoPatch);
+  const config = await loadConfig(rootDir);
+  const ignore = options.ignore ?? config.ignore;
 
-  // Run comprehensive scan
-  const scanResult = await scan({
+  // Run initial scan
+  let scanResult = await scan({
     rootDir,
     targetPath: options.targetPath,
     detailed: options.detailed ?? true, // Build gate runs detailed by default
     layers: options.layers,
     languages: options.languages,
     ruleIds: options.ruleIds,
-    ignore: options.ignore,
+    ignore,
   });
+
+  let appliedFixes: { file: string; ruleId: string; description: string }[] | undefined;
+  let fixSummaryText: string | undefined;
+
+  // If auto-patch / fix is requested, patch fixable vulnerabilities on the fly
+  if (shouldFix) {
+    const isDryRun = Boolean(options.dryRun);
+    const fixableCount = scanResult.findings.filter((f) => Boolean(f.fix)).length;
+    if (fixableCount > 0) {
+      const fixSummary = await applyFixes(scanResult, {
+        dryRun: isDryRun,
+        onlyRuleIds: options.ruleIds,
+      });
+
+      appliedFixes = fixSummary.applied.map((a) => ({
+        file: a.file,
+        ruleId: a.ruleId,
+        description: a.description,
+      }));
+      fixSummaryText = formatFixSummary(fixSummary, isDryRun);
+
+      // Re-scan after applying patches to disk so the build verdict reflects cleaned state
+      if (!isDryRun && fixSummary.applied.length > 0) {
+        scanResult = await scan({
+          rootDir,
+          targetPath: options.targetPath,
+          detailed: options.detailed ?? true,
+          layers: options.layers,
+          languages: options.languages,
+          ruleIds: options.ruleIds,
+          ignore,
+        });
+      }
+    }
+  }
 
   const blockingFindings: Finding[] = [];
   const warningFindings: Finding[] = [];
@@ -75,6 +115,9 @@ export async function checkBuild(options: BuildCheckOptions = {}): Promise<Build
     criticalCount,
     highCount,
     warningCount,
+    appliedFixes,
+    fixSummaryText,
+    isDryRun: options.dryRun,
   });
 
   return {
@@ -89,6 +132,8 @@ export async function checkBuild(options: BuildCheckOptions = {}): Promise<Build
     warningFindings,
     reportPath,
     terminalOutput,
+    appliedFixes,
+    fixSummary: fixSummaryText,
   };
 }
 
@@ -101,11 +146,39 @@ function renderTerminalOutput(params: {
   criticalCount: number;
   highCount: number;
   warningCount: number;
+  appliedFixes?: readonly { file: string; ruleId: string; description: string }[];
+  fixSummaryText?: string;
+  isDryRun?: boolean;
 }): string {
-  const { verdict, blockingFindings, warningFindings, reportPath, criticalCount, highCount, warningCount } = params;
+  const {
+    verdict,
+    blockingFindings,
+    warningFindings,
+    reportPath,
+    criticalCount,
+    highCount,
+    warningCount,
+    appliedFixes,
+    fixSummaryText,
+    isDryRun,
+  } = params;
   const lines: string[] = [];
 
   const hr = '━'.repeat(64);
+
+  // If patches were applied or previewed, display patch summary first
+  if (appliedFixes && appliedFixes.length > 0) {
+    lines.push(hr);
+    if (isDryRun) {
+      lines.push(`🔍 [Pre-Build Patch Preview] ${appliedFixes.length} patch(es) ready to apply:`);
+    } else {
+      lines.push(`🔧 [Pre-Build Auto-Patch] Applied ${appliedFixes.length} security patch(es) on-the-fly:`);
+    }
+    for (const p of appliedFixes) {
+      lines.push(`  • [${p.ruleId}] ${p.file}: ${p.description}`);
+    }
+    lines.push(hr);
+  }
 
   if (verdict === 'SUCCESS') {
     lines.push(hr);
@@ -114,7 +187,10 @@ function renderTerminalOutput(params: {
     lines.push(`• Files audited: ${params.scanResult.filesScanned}`);
     lines.push(`• Rules evaluated: ${params.scanResult.rulesEvaluated}`);
     lines.push(`• Duration: ${params.scanResult.durationMs}ms`);
-    lines.push('• Result: 0 vulnerabilities found. Build proceeding safely.');
+    if (appliedFixes && appliedFixes.length > 0) {
+      lines.push(`• Auto-patches applied: ${appliedFixes.length} (vulnerabilities healed)`);
+    }
+    lines.push('• Result: 0 blocking vulnerabilities. Build proceeding safely.');
     lines.push(hr);
   } else if (verdict === 'WARNING') {
     lines.push(hr);
@@ -122,6 +198,9 @@ function renderTerminalOutput(params: {
     lines.push(hr);
     lines.push(`• Files audited: ${params.scanResult.filesScanned}`);
     lines.push(`• Non-blocking warnings: ${warningCount}`);
+    if (appliedFixes && appliedFixes.length > 0) {
+      lines.push(`• Auto-patches applied: ${appliedFixes.length}`);
+    }
     lines.push('• Status: No Critical or High vulnerabilities. Build proceeding with warnings.');
     lines.push('');
     lines.push('Top Warnings:');
@@ -154,7 +233,7 @@ function renderTerminalOutput(params: {
       lines.push('');
     }
     lines.push('To unblock the build:');
-    lines.push('  1) Run `npx vibe-security scan . --fix --dry-run` to inspect auto-fixes.');
+    lines.push('  1) Run `npx vibe-security check-build . --fix` to auto-apply security patches.');
     lines.push('  2) Or run `/securityCheck --fix` in your AI coding assistant to auto-remediate.');
     lines.push('  3) Re-run build once vulnerabilities are resolved.');
     if (reportPath) lines.push(`\n📝 Audit report: ${reportPath}`);

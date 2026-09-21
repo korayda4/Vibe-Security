@@ -11,7 +11,7 @@ import { allTools, dispatchTool } from './tools/index.js';
 export const server = new Server(
   {
     name: 'vibe-security',
-    version: '1.3.0',
+    version: '1.3.1',
   },
   {
     capabilities: {

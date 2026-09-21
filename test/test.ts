@@ -686,5 +686,20 @@ test('MCP dispatchTool handles check_build', async () => {
   assert.equal(result.isError, true, 'fixture has critical flaws so isError should be true');
 });
 
+test('checkBuild with fix: true applies patches on-the-fly and reports preview in dryRun', async () => {
+  const { checkBuild } = await import('../src/engine/buildGuard.js');
+  const res = await checkBuild({
+    rootDir: FIXTURE_DIR,
+    ruleIds: ['FE-001', 'NET-002'],
+    fix: true,
+    dryRun: true,
+    writeReport: false,
+  });
+
+  assert.ok(res.appliedFixes && res.appliedFixes.length > 0);
+  assert.ok(res.terminalOutput.includes('[Pre-Build Patch Preview]'));
+});
+
+
 
 

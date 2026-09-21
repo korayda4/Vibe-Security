@@ -2,6 +2,15 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.1] — 2026-09-21
+
+### Added
+
+- **On-the-fly Pre-Build Auto-Patching** — `check-build` now supports `--fix` and `--auto-patch`. Auto-fixable vulnerabilities are patched on-the-fly during pre-build; if all blocking flaws are resolved, the build proceeds cleanly without halting.
+- **Self-Healing Build Scripts** — `vibe-security init` now injects `"prebuild": "vibe-security check-build --fix"` into host `package.json` files for zero-friction self-healing builds.
+- **Internal Pre-Build Guard** — added `"prebuild": "tsx src/cli.ts check-build src/ --fix"` to ensure internal builds are continuously gated and verified.
+- **MCP `check_build` Auto-Patching** — enhanced `check_build` tool with `fix` and `dryRun` parameters, allowing AI agents to heal vulnerabilities in a single step.
+
 ## [1.3.0] — 2026-09-21
 
 ### Added
