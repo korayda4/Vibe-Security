@@ -97,7 +97,7 @@ export async function walkProject(options: WalkOptions): Promise<readonly Walked
 
       if (name.startsWith('.')) {
         const allowed =
-          name === '.env' || name === '.env.example' || name === '.gitignore' || name === '.dockerignore';
+          name === '.env' || name.startsWith('.env.') || name === '.gitignore' || name === '.dockerignore';
         if (!allowed) continue;
       }
 

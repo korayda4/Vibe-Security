@@ -72,6 +72,9 @@ export function detectByExtension(filePath: string): Language | null {
   if (FILENAME_MAP[base]) {
     return FILENAME_MAP[base];
   }
+  if (base === '.env' || base.startsWith('.env.')) {
+    return 'unknown';
+  }
   const ext = path.extname(base).toLowerCase();
   return EXTENSION_MAP[ext] ?? null;
 }

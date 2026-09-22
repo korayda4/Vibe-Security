@@ -76,8 +76,9 @@ When the user asks to inspect security, when debugging issues, or when unblockin
 ### 2. Triage & Understand
 Group findings logically:
 - 🛡️ **Security Vulnerabilities:** (`CRITICAL` -> `HIGH` -> `MEDIUM` -> `LOW`)
+- 🔑 **Secrets & `.env` Guard (`AI-005`, `CI-002`):** Flags hardcoded AI/LLM keys (OpenAI, Claude, Gemini), DB connection passwords, private webhooks, and committed `.env` files.
 - 🧹 **Code Quality & Lint:** (`LINT-001` - `LINT-005`)
-- Inspect deep threat intelligence for complex rules: `get_rule_detail({ ruleId: "BE-004" })`.
+- Inspect deep threat intelligence for complex rules: `get_rule_detail({ ruleId: "AI-005" })` or `get_rule_detail({ ruleId: "BE-004" })`.
 
 ### 3. Plan & Preview Fix (Dry-Run)
 - Never modify files blindly.

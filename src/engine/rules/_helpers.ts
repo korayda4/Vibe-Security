@@ -37,7 +37,10 @@ export function redactSensitiveValues(snippet: string): string {
     .replace(
       /(\b(?:api[_-]?key|authorization|password|secret|token)\b\s*[:=]\s*["'`])[^"'`\r\n]+(["'`])/gi,
       '$1[REDACTED]$2'
-    );
+    )
+    .replace(/\b(sk-(?:proj-)?[a-zA-Z0-9_\-]{8})[a-zA-Z0-9_\-]{16,}\b/g, '$1...[REDACTED]')
+    .replace(/\b(sk-ant-[a-zA-Z0-9_\-]{6})[a-zA-Z0-9_\-]{12,}\b/g, '$1...[REDACTED]')
+    .replace(/(:\/\/[^\s'"`:@/]+:)[^@\s'"`/]+(@)/g, '$1[REDACTED]$2');
 }
 
 export function makeFinding(

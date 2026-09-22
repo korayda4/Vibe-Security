@@ -1,6 +1,6 @@
 {
   "name": "@korayda4/vibe-security",
-  "version": "1.3.4",
+  "version": "1.4.0",
   "description": "Security guard MCP server for Vibe Coded projects — scans Frontend and Backend across every layer and language, plans + tests + fixes vulnerabilities. Claude Code and VS Code Anthropic Claude extension compatible.",
   "type": "module",
   "main": "dist/index.js",

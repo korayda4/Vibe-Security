@@ -2,6 +2,21 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.4.0] — 2026-09-22
+
+### Added & Enhanced
+
+- **`AI-005` (.env Secret & Credential Leak Rule)** — comprehensive security rule detecting hardcoded secrets and credentials that belong in `.env`:
+  - **Modern AI & LLM Provider Keys:** OpenAI (`sk-...`, `sk-proj-...`), Anthropic Claude (`sk-ant-...`), Google Gemini (`AIzaSy...`), Groq (`gsk_...`), HuggingFace (`hf_...`), Pinecone (`pcsk_...`), Replicate (`r8_...`).
+  - **Database Connection Strings with Passwords:** `mongodb://user:pass@...`, `postgres://...`, `mysql://...`, `redis://...`, `amqp://...`.
+  - **Private Webhooks & SaaS Secrets:** Slack incoming webhooks, Discord webhooks, Stripe live/webhook keys, SendGrid, Twilio, AWS Access Keys, GitHub PATs.
+  - **Variable Assignment Auto-Fixing:** automatically rewrites hardcoded variable assignments (`const API_KEY = "..."`) to `process.env.API_KEY || ''` (Node/TypeScript) or `os.environ.get('API_KEY', '')` (Python) via `--fix` / `apply_fix`.
+  - **Committed `.env` File Detection:** flags unignored `.env` / `.env.production` files containing live active credentials.
+  - **Strict Build Gating:** classified as `critical`, immediately halting builds via `check-build` (`verdict: SECURITY_VULNERABILITY`, `exitCode: 1`) to prevent production deployment of leaked credentials.
+- **Enhanced `CI-002` Secret Detection** — synchronized matching patterns across CI/CD scanning with database URL and AI key detection.
+- **Improved Dotfile Walking & Language Mapping** — `.env.*` files (e.g. `.env.local`, `.env.production`) are now walked and inspected.
+- **Expanded Test Suite** — added 6 comprehensive tests for `AI-005` covering AI keys, database URIs, webhooks, placeholder immunity, auto-fix generation, and build halt verification (total 50 passing tests).
+
 ## [1.3.4] — 2026-09-22
 
 ### Fixed & Enhanced

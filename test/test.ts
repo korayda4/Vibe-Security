@@ -771,6 +771,145 @@ test('checkBuild exposes blockingCount and formats dynamic breakdown with custom
   }
 });
 
+test('AI-005 detects hardcoded OpenAI project keys, Anthropic keys, and Gemini keys', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('AI-005')!;
+  assert.ok(rule, 'AI-005 rule must be registered');
+
+  const openaiKey = ['sk', 'proj', 'abc1234567890def1234567890def123456'].join('-');
+  const claudeKey = ['sk', 'ant', 'api03-abcdef1234567890abcdef123456'].join('-');
+  const geminiKey = ['AIzaSyD', '1234567890abcdef1234567890abc'].join('-');
+
+  const src = [
+    `const openaiKey = "${openaiKey}";`,
+    `const claudeKey = "${claudeKey}";`,
+    `const geminiKey = "${geminiKey}";`,
+  ].join('\n');
+
+  const findings = rule.check({
+    filePath: 'src/config.ts',
+    relativePath: 'src/config.ts',
+    language: 'typescript',
+    source: src,
+    lines: src.split('\n'),
+  });
+
+  assert.equal(findings.length >= 3, true, `Expected >= 3 findings, got ${findings.length}`);
+  assert.ok(findings.some((f) => f.title.includes('OpenAI API key')));
+  assert.ok(findings.some((f) => f.title.includes('Anthropic API key')));
+  assert.ok(findings.some((f) => f.title.includes('Google Gemini / Cloud API key')));
+});
+
+test('AI-005 detects database connection strings with embedded passwords', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('AI-005')!;
+
+  const src = `
+    const mongoUri = "mongodb+srv://adminUser:SuperSecretPass123@cluster0.example.net/prod";
+    const pgUri = "postgres://dbuser:MyProdDbPassword!@db.example.com:5432/main";
+  `;
+
+  const findings = rule.check({
+    filePath: 'src/db.ts',
+    relativePath: 'src/db.ts',
+    language: 'typescript',
+    source: src,
+    lines: src.split('\n'),
+  });
+
+  assert.equal(findings.length, 2);
+  assert.ok(findings.every((f) => f.title.includes('Database URI with embedded password')));
+});
+
+test('AI-005 detects private webhook endpoints and SaaS secrets', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('AI-005')!;
+
+  const slackUrl = ['https:', '', 'hooks.slack.com', 'services', 'T00000000', 'B00000000', 'abcdefghijklmnopqrstuvwx'].join('/');
+  const discordUrl = ['https:', '', 'discord.com', 'api', 'webhooks', '123456789012345678', 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWX'].join('/');
+  const stripeKey = ['sk', 'live', '1234567890abcdefghijklmnopqrstuv'].join('_');
+
+  const src = [
+    `const slackUrl = "${slackUrl}";`,
+    `const discordUrl = "${discordUrl}";`,
+    `const stripeLive = "${stripeKey}";`,
+  ].join('\n');
+
+  const findings = rule.check({
+    filePath: 'src/notify.ts',
+    relativePath: 'src/notify.ts',
+    language: 'typescript',
+    source: src,
+    lines: src.split('\n'),
+  });
+
+  assert.equal(findings.length, 3);
+  assert.ok(findings.some((f) => f.title.includes('Slack Incoming Webhook URL')));
+  assert.ok(findings.some((f) => f.title.includes('Discord Webhook URL')));
+  assert.ok(findings.some((f) => f.title.includes('Stripe Live Secret Key')));
+});
+
+test('AI-005 ignores benign placeholders and env variable references', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('AI-005')!;
+
+  const src = `
+    const apiKey = "your_api_key_here";
+    const dummy = "placeholder";
+    const envVal = process.env.OPENAI_API_KEY;
+    const testSecret = "change_me";
+  `;
+
+  const findings = rule.check({
+    filePath: 'src/safe.ts',
+    relativePath: 'src/safe.ts',
+    language: 'typescript',
+    source: src,
+    lines: src.split('\n'),
+  });
+
+  assert.equal(findings.length, 0, 'Benign placeholders and process.env references must not trigger AI-005');
+});
+
+test('AI-005 generates auto-fix converting hardcoded secrets to process.env', async () => {
+  const { getRuleById } = await import('../src/engine/rules/index.js');
+  const rule = getRuleById('AI-005')!;
+
+  const testKey = ['sk', 'proj', '1234567890abcdef1234567890abcdef'].join('-');
+  const src = `const OPENAI_API_KEY = "${testKey}";`;
+
+  const findings = rule.check({
+    filePath: 'src/ai.ts',
+    relativePath: 'src/ai.ts',
+    language: 'typescript',
+    source: src,
+    lines: [src],
+  });
+
+  assert.ok(findings.length >= 1);
+  const fixFinding = findings.find((f) => Boolean(f.fix));
+  assert.ok(fixFinding, 'AI-005 should provide an auto-fix for variable assignments');
+  assert.equal(
+    fixFinding!.fix!.replace,
+    `const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';`
+  );
+});
+
+test('AI-005 blocks build and returns SECURITY_VULNERABILITY in checkBuild', async () => {
+  const { checkBuild } = await import('../src/engine/buildGuard.js');
+  const res = await checkBuild({
+    rootDir: FIXTURE_DIR,
+    ruleIds: ['AI-005'],
+    writeReport: false,
+  });
+
+  assert.equal(res.verdict, 'SECURITY_VULNERABILITY');
+  assert.equal(res.exitCode, 1);
+  assert.ok(res.blockingCount > 0);
+  assert.ok(res.terminalOutput.includes('SECURITY VULNERABILITY - BUILD BLOCKED'));
+});
+
+
 
 
 
