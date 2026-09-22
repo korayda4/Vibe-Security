@@ -2,6 +2,16 @@
 
 All notable changes to Vibe Security are documented here. Format follows [Keep a Changelog](https://keepachangelog.com). The project adheres to [Semantic Versioning](https://semver.org).
 
+## [1.3.4] — 2026-09-22
+
+### Fixed & Enhanced
+
+- **Accurate Severity Badge Formatting** — introduced reusable `formatSeverityBadge` helper mapping every severity level (`critical`, `high`, `medium`, `low`, `info`) cleanly across both Warning and Security Vulnerability outputs, eliminating hardcoded label mismatches under custom severity policies.
+- **Dynamic Blocking Severity Breakdown** — calculated dynamic severity counts directly from `blockingFindings`, ensuring accurate terminal messages (e.g. `Found 1 blocking vulnerability (1 MEDIUM)!`) when customized `blockSeverities` trigger a halt.
+- **Exposed `blockingCount` on `BuildCheckResult`** — added `readonly blockingCount: number` to `BuildCheckResult` programmatic API and exports in `src/index.ts`.
+- **Extended CLI Command Aliases & Help** — added support for `security-check-build`, `/securityCheckBuild`, and `/check-build` to prevent unknown command errors when agents invoke slash commands directly in terminal; updated CLI `--help` with `--block`, `--auto-patch`, and `--fix`.
+- **Enriched AAP Skill Documentation** — updated `SKILL.md` MCP tool reference with all parameters (`fix`, `dryRun`, `layers`, `languages`, `ruleIds`, `blockSeverities`).
+
 ## [1.3.3] — 2026-09-22
 
 ### Fixed & Enhanced

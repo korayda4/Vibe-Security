@@ -744,6 +744,34 @@ test('MCP dispatchTool check_build forwards custom layers and ruleIds', async ()
   assert.ok(jsonContent, 'should return SUCCESS for non-existent rule check');
 });
 
+test('formatSeverityBadge maps all severities to distinct badges', async () => {
+  const { formatSeverityBadge } = await import('../src/engine/buildGuard.js');
+  assert.equal(formatSeverityBadge('critical'), '🟣 [CRITICAL]');
+  assert.equal(formatSeverityBadge('high'), '🔴 [HIGH]');
+  assert.equal(formatSeverityBadge('medium'), '🟠 [MEDIUM]');
+  assert.equal(formatSeverityBadge('low'), '🟡 [LOW]');
+  assert.equal(formatSeverityBadge('info'), '🔵 [INFO]');
+});
+
+test('checkBuild exposes blockingCount and formats dynamic breakdown with custom blockSeverities', async () => {
+  const { checkBuild } = await import('../src/engine/buildGuard.js');
+  const res = await checkBuild({
+    rootDir: FIXTURE_DIR,
+    layers: ['lint'],
+    blockSeverities: ['medium'],
+    writeReport: false,
+  });
+
+  if (res.blockingFindings.length > 0) {
+    assert.equal(res.verdict, 'SECURITY_VULNERABILITY');
+    assert.equal(res.exitCode, 1);
+    assert.equal(res.blockingCount, res.blockingFindings.length);
+    assert.ok(res.terminalOutput.includes('blocking vulnerabilit'));
+    assert.ok(res.terminalOutput.includes('🟠 [MEDIUM]'));
+  }
+});
+
+
 
 
 

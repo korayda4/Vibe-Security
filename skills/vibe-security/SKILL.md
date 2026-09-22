@@ -99,7 +99,7 @@ Group findings logically:
 
 | MCP Tool | Purpose | Key Arguments |
 | :--- | :--- | :--- |
-| `check_build` | **Pre-build gatekeeper (3-tier verdict)** | `rootDir`, `targetPath`, `detailed`, `blockSeverities`, `reportPath` |
+| `check_build` | **Pre-build gatekeeper (3-tier verdict)** | `rootDir`, `targetPath`, `detailed`, `blockSeverities`, `reportPath`, `fix`, `dryRun`, `layers`, `languages`, `ruleIds` |
 | `scan_project` | Deep project/folder audit & research | `rootDir`, `targetPath`, `detailed`, `layers`, `languages`, `ruleIds` |
 | `scan_file` | Single file rapid check | `filePath`, `layers`, `ruleIds` |
 | `apply_fix` | Preview & apply unified diff patches | `rootDir`, `ruleIds`, `file`, `dryRun` (default: `true`) |

@@ -49,7 +49,18 @@ const VALID_SEVERITIES = new Set<Severity>(['critical', 'high', 'medium', 'low',
 
 function parseArgs(argv: readonly string[]): CliArgs {
   const args = argv.slice(2);
-  const knownCommands = new Set(['scan', 'list', 'rules', 'init', 'baseline', 'check-build', 'securityCheckBuild']);
+  const knownCommands = new Set([
+    'scan',
+    'list',
+    'rules',
+    'init',
+    'baseline',
+    'check-build',
+    'securityCheckBuild',
+    'security-check-build',
+    '/securityCheckBuild',
+    '/check-build',
+  ]);
   const hasCommand = knownCommands.has(args[0] ?? '');
   const out: CliArgs = {
     cmd: hasCommand ? args[0] : 'scan',
@@ -162,6 +173,7 @@ Usage:
   vibe-security scan [path] [options]
   vibe-security check-build [path] [options]     # Pre-build gate checking 3-tier verdict
   vibe-security securityCheckBuild [path]        # Alias for check-build
+  vibe-security security-check-build [path]      # Alias for check-build
   vibe-security list
   vibe-security init
   vibe-security baseline update [path]
@@ -172,8 +184,9 @@ Scan / Check-Build options:
   --lint                                         Include or focus on language quality and syntax lint rules
   --format <markdown|json|sarif|junit|compact>   Output format (default: markdown)
   --output, -o <path>                            Output file path (default: Security.md)
-  --fix                                          Apply auto-fixes (scan command)
-  --dry-run                                      Preview auto-fixes without writing
+  --fix, --auto-patch                            Apply patches for fixable vulnerabilities on the fly
+  --dry-run                                      Preview auto-fixes without writing to disk
+  --block, --block-severities <c,h,m,l,i>        Severities that halt build (default: critical,high)
   --baseline <path>                              Show only new findings vs baseline
   --update-baseline                              Write current findings to baseline
   --layers <f,b,n,d,c,o,lint>                    Scan only these layers
@@ -437,7 +450,15 @@ async function main(): Promise<number> {
   if (args.cmd === 'list' || args.cmd === 'rules') return cmdList().then(() => 0);
   if (args.cmd === 'init') return cmdInit(args.target).then(() => 0);
   if (args.cmd === 'baseline') return cmdBaseline(args);
-  if (args.cmd === 'check-build' || args.cmd === 'securityCheckBuild') return cmdCheckBuild(args);
+  if (
+    args.cmd === 'check-build' ||
+    args.cmd === 'securityCheckBuild' ||
+    args.cmd === 'security-check-build' ||
+    args.cmd === '/securityCheckBuild' ||
+    args.cmd === '/check-build'
+  ) {
+    return cmdCheckBuild(args);
+  }
   if (args.cmd === 'scan' || args.cmd === undefined) return cmdScan(args);
 
   console.error(`Unknown command: ${args.cmd}`);
@@ -518,7 +539,7 @@ description: Security guard, lint checker, pre-build gatekeeper, and automated r
 
 ## Workflows:
 1. **Pre-Build Gate (/securityCheckBuild):**
-   - Call \`check_build({ rootDir: "." })\` before building or releasing.
+   - Call \`check_build({ rootDir: ".", fix: true })\` before building or releasing to auto-heal fixable flaws and evaluate verdict.
    - Evaluates 3-tier verdict:
      - \`SUCCESS\` -> proceed with build.
      - \`WARNING\` -> non-blocking warnings detected (medium/low/lint), review warnings and proceed.

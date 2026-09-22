@@ -16,6 +16,22 @@ import type {
 
 export type { BuildVerdict, BuildCheckOptions, BuildCheckResult };
 
+export function formatSeverityBadge(severity: Severity): string {
+  switch (severity) {
+    case 'critical':
+      return '🟣 [CRITICAL]';
+    case 'high':
+      return '🔴 [HIGH]';
+    case 'medium':
+      return '🟠 [MEDIUM]';
+    case 'low':
+      return '🟡 [LOW]';
+    case 'info':
+    default:
+      return '🔵 [INFO]';
+  }
+}
+
 const DEFAULT_BLOCK_SEVERITIES: readonly Severity[] = ['critical', 'high'];
 
 export async function checkBuild(options: BuildCheckOptions = {}): Promise<BuildCheckResult> {
@@ -128,6 +144,7 @@ export async function checkBuild(options: BuildCheckOptions = {}): Promise<Build
     criticalCount,
     highCount,
     warningCount,
+    blockingCount: blockingFindings.length,
     blockingFindings,
     warningFindings,
     reportPath,
@@ -225,7 +242,7 @@ function renderTerminalOutput(params: {
 
       lines.push(`  📁 ${file} (${sevSummary})`);
       for (const f of fList) {
-        const badge = f.severity === 'medium' ? '🟠 [MEDIUM]' : f.severity === 'low' ? '🟡 [LOW]' : '🔵 [INFO]';
+        const badge = formatSeverityBadge(f.severity);
         lines.push(`     ${badge} Line ${f.match.line} [\`${f.ruleId}\`] ${f.title}`);
       }
       lines.push('');
@@ -238,7 +255,22 @@ function renderTerminalOutput(params: {
     lines.push(hr);
     lines.push('🚨 [SecurityCheckBuild: SECURITY VULNERABILITY - BUILD BLOCKED]');
     lines.push(hr);
-    lines.push(`❌ BUILD HALTED: Found ${criticalCount} Critical and ${highCount} High vulnerabilities!`);
+    const blockingSevCounts = blockingFindings.reduce((acc, curr) => {
+      acc[curr.severity] = (acc[curr.severity] ?? 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const sevParts: string[] = [];
+    for (const s of ['critical', 'high', 'medium', 'low', 'info'] as const) {
+      if (blockingSevCounts[s]) {
+        sevParts.push(`${blockingSevCounts[s]} ${s.charAt(0).toUpperCase() + s.slice(1)}`);
+      }
+    }
+    const sevBreakdown = sevParts.length > 0 ? sevParts.join(' and ') : `${blockingFindings.length} Unspecified`;
+
+    lines.push(
+      `❌ BUILD HALTED: Found ${blockingFindings.length} blocking vulnerabilit${blockingFindings.length === 1 ? 'y' : 'ies'} (${sevBreakdown})!`
+    );
     lines.push('Production build is blocked to prevent deploying security flaws.');
     lines.push('');
     lines.push('🚨 Blocking Vulnerabilities by File & Severity:');
@@ -263,7 +295,7 @@ function renderTerminalOutput(params: {
 
       lines.push(`  📁 ${file} (${sevSummary})`);
       for (const f of fList) {
-        const badge = f.severity === 'critical' ? '🟣 [CRITICAL]' : '🔴 [HIGH]';
+        const badge = formatSeverityBadge(f.severity);
         lines.push(`     ${badge} Line ${f.match.line} [\`${f.ruleId}\`] ${f.title}`);
         lines.push(`        Threat: ${f.impact}`);
         lines.push(`        Action: ${f.remediation.split('\n')[0]}`);

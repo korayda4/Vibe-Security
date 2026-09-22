@@ -1,6 +1,6 @@
 # Vibe Security
 
-**Stable release: `1.3.3`**
+**Stable release: `1.3.4`**
 
 > **The security guard for Vibe Coded projects.** Every line of AI-generated Frontend or Backend code is planned, tested, and scanned across all layers and languages. Auto-fix patches included for the most common mistakes. Built-in 3-tier pre-build gate with on-the-fly auto-patching heals vulnerabilities to keep builds moving.
 

@@ -45,7 +45,7 @@ export type { AiSecurityConfig } from './engine/config.js';
 export { server, startServer } from './server.js';
 
 // Build Guard (Automated Build Gate)
-export { checkBuild } from './engine/buildGuard.js';
+export { checkBuild, formatSeverityBadge } from './engine/buildGuard.js';
 export type { BuildVerdict, BuildCheckOptions, BuildCheckResult } from './engine/buildGuard.js';
 
 // Type definitions

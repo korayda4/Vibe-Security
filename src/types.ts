@@ -183,6 +183,7 @@ export interface BuildCheckResult {
   readonly criticalCount: number;
   readonly highCount: number;
   readonly warningCount: number;
+  readonly blockingCount: number;
   readonly blockingFindings: readonly Finding[];
   readonly warningFindings: readonly Finding[];
   readonly reportPath?: string;
