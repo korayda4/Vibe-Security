@@ -74,9 +74,12 @@ MCP
 ───
 *.mcp.json
 
-Misc
-────
+# Misc
 _unused_*
 _to_clean_*
 *.tmp
 *.bak
+
+# Local AI & Workflow Guides (Private / Local only)
+VersionVS.md
+
